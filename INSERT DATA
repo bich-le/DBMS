@@ -1,0 +1,30 @@
+INSERT INTO Customers (FirstName, LastName, Address, PhoneNumber, Gender, AccountNo, AccountType, Balance)
+VALUES 
+('John', 'Doe', '123 Elm Street', '0123456789', 'Male', 'ACC001', 'Savings', 5000.00),
+('Jane', 'Smith', '456 Oak Avenue', '0987654321', 'Female', 'ACC002', 'Business', 15000.00),
+('David', 'Nguyen', '789 Pine Road', '0909090909', 'Male', 'ACC003', 'Savings', 3000.00),
+('Emily', 'Tran', '101 Maple Blvd', '0911223344', 'Female', 'ACC004', 'Business', 10000.00);
+
+INSERT INTO Branch (Branch_name, Location)
+VALUES
+('Central Branch', '123 Main St, New York'),
+('West Branch', '456 West Ave, Los Angeles'),
+('East Branch', '789 East Rd, Chicago');
+
+INSERT INTO Employees (Emp_Fullname, Emp_Gender, Emp_DOB, Emp_Phone, Emp_Email, Emp_Address, Emp_Hire_date, Emp_Salary, Emp_Branch_ID, Emp_Position)
+VALUES
+('Alice Johnson', 'Female', '1990-05-20', '0901234567', 'alice.j@example.com', '22 Broadway, New York', '2018-03-15', 5000.00, 1, 'Teller'),
+('Bob Smith', 'Male', '1985-11-12', '0912345678', 'bob.smith@example.com', '55 Sunset Blvd, Los Angeles', '2015-06-01', 7000.00, 2, 'Manager'),
+('Charlie Brown', 'Male', '1992-07-08', '0923456789', 'charlie.b@example.com', '77 Lakeside Dr, Chicago', '2020-01-10', 4500.00, 3, 'Teller'),
+('Diana Prince', 'Female', '1988-03-22', '0934567890', 'diana.p@example.com', '10 Liberty St, New York', '2016-09-01', 6500.00, 1, 'Auditor'),
+('Edward Lee', 'Male', '1979-10-30', '0945678901', 'edward.l@example.com', '66 Ocean Ave, Los Angeles', '2012-04-25', 9000.00, 2, 'Director');
+
+INSERT INTO EmployeeCustomer (Emp_ID, Customer_ID, role, assigned_date)
+VALUES
+(1, 1, 'Account Opening', '2023-01-10'),
+(1, 2, 'Loan Consultation', '2023-02-15'),
+(2, 2, 'Manager Review', '2023-03-20'),
+(3, 3, 'Account Update', '2023-04-01'),
+(4, 4, 'Audit Check', '2023-05-12'),
+(5, 1, 'Executive Review', '2023-06-08'),
+(5, 3, 'Loan Approval', '2023-07-18');
