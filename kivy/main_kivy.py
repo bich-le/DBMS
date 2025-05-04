@@ -13,21 +13,28 @@ from kivy.graphics import Color
 from kivy.lang import Builder
 from kivy.uix.popup import Popup
 
-class MainWindow(Screen):
+from kivymd.app import MDApp
+from kivymd.uix.screen import MDScreen
+from kivymd.uix.button import MDRaisedButton
+from kivymd.uix.textfield import MDTextField
+from kivymd.uix.label import MDLabel
+from kivymd.uix.screenmanager import MDScreenManager
+from kivymd.uix.boxlayout import MDBoxLayout
+from kivymd.uix.button import MDRoundFlatButton
+
+class MainScreen(MDScreen):
     pass
 
-class SecondWindow(Screen):
+class SecondScreen(MDScreen):
     pass
 
-class WindowManager(ScreenManager):
-    pass
-
-kv = Builder.load_file("my.kv")
-
-class MyMainApp(App):
+class MyApp(MDApp):
     def build(self):
-        return kv
+        self.theme_cls.primary_palette = "DeepPurple"
+        sm = MDScreenManager()
+        sm.add_widget(MainScreen(name="main"))
+        sm.add_widget(SecondScreen(name="second"))
+        return sm
 
 if __name__ == '__main__':
-    MyMainApp().run()
-    
+    MyApp().run()

@@ -1,44 +1,55 @@
-WindowManager:
-    MainWindow:
-    SecondWindow:
+<MainScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+        spacing: "20dp"
+        padding: "30dp"
+        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+        size_hint: 0.8, None
+        height: self.minimum_height
 
-<MainWindow>:
-    name: "main"
+        MDLabel:
+            text: "DTNB BANK"
+            halign: "center"
+            theme_text_color: "Custom"
+            text_color: app.theme_cls.primary_color
+            font_style: "H5"
+            bold: True
 
-    Label:
-        text: "Username:"
-        size_hint: (0.2,0.1)
-        pos_hint:{"x": 0.2, "y": 0.6}
+        MDTextField:
+            id: username
+            hint_text: "Username"
+            leading_icon: "account"
+            mode: "rectangle"
 
-    TextInput:
-        id: name
-        multiline: False
-        size_hint: (0.4, 0.1)
-        pos_hint: {"x": 0.4, "y": 0.6}
+        MDTextField:
+            id: password
+            hint_text: "Password"
+            password: True
+            leading_icon: "lock"
+            mode: "rectangle"
 
-    Label:
-        text: "Password:"
-        size_hint: (0.2, 0.1)
-        pos_hint: {"x": 0.2, "y": 0.5}
+        MDRaisedButton:
+            text: "Sign in"
+            md_bg_color: app.theme_cls.primary_color
+            pos_hint: {"center_x": 0.5}
+            on_release:
+                root.manager.current = "second" if username.text == "bich" and password.text == "bich" else "main"
+                root.manager.transition.direction = "left"
 
-    TextInput:
-        id: passw
-        multiline: False
-        size_hint: (0.4, 0.1)
-        pos_hint: {"x": 0.4, "y": 0.5}
+<SecondScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+        padding: "20dp"
+        spacing: "20dp"
 
-    Button:
-        text: "Submit"
-        size_hint: (0.3, 0.1)
-        pos_hint: {"x": 0.35, "y": 0.35}
-        on_release: 
-            app.root.current = "second" if (passw.text == "bich" and name.text == "bich") else "main"
-            root.manager.transition.direction = "left"
-<SecondWindow>:
-    name: "second"
+        MDLabel:
+            text: "Welcome to Second Screen"
+            halign: "center"
+            font_style: "H6"
 
-    Button:
-        text: "Go Back"
-        on_release: 
-            app.root.current = "main"
-            root.manager.transition.direction = "right"
+        MDRaisedButton:
+            text: "Go Back"
+            pos_hint: {"center_x": 0.5}
+            on_release:
+                root.manager.current = "main"
+                root.manager.transition.direction = "right"
