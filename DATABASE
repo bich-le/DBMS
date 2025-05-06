@@ -113,17 +113,30 @@ CREATE TABLE EMPLOYEE_ACCOUNT (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,         -- Timestamp when the account was created
     FOREIGN KEY (emp_id) REFERENCES EMPLOYEE(emp_id) ON DELETE CASCADE  -- Foreign key to EMPLOYEE table
 );
-CREATE TABLE DEVICE (
-    device_id INT AUTO_INCREMENT PRIMARY KEY,          -- Unique identifier for the device
-    employee_account_id INT NOT NULL,                                      -- Foreign key to the user (or employee) who owns the device
-    device_type ENUM('Mobile', 'Tablet', 'Desktop', 'ATM', 'POS') NOT NULL,  -- Type of device
-    device_name VARCHAR(100),                          -- Name or model of the device (e.g., "iPhone 12", "HP Laptop")
-    device_ip VARCHAR(45) NOT NULL,                             -- IP address of the device (IPv4 or IPv6)
-    last_used DATETIME,                                -- Last time the device was used to access the system
-    is_active BOOLEAN DEFAULT TRUE,                    -- Whether the device is currently active
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,     -- Timestamp when the device record was created
-    FOREIGN KEY (employee_account_id) REFERENCES EMPLOYEE_ACCOUNT(employee_account_id)   -- Foreign key to the USERS table
+CREATE TABLE device_type (
+    type_id INT AUTO_INCREMENT PRIMARY KEY,
+    type_name VARCHAR(50) NOT NULL UNIQUE,      -- Ví dụ: 'desktop', 'laptop', 'thin_client'
+    is_portable BOOLEAN DEFAULT FALSE,          -- Có được mang ra ngoài không
+    requires_approval BOOLEAN DEFAULT TRUE,     -- Có cần IT duyệt không
+    description TEXT
 );
+
+CREATE TABLE device (
+    device_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    type_id INT NOT NULL,                        -- Thay vì ghi tên loại trực tiếp
+    device_name VARCHAR(100) NOT NULL,
+    mac_address VARCHAR(50) NOT NULL,
+    ip_address VARCHAR(45),
+    is_active BOOLEAN DEFAULT TRUE,
+    is_approved BOOLEAN DEFAULT FALSE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_checked_at DATETIME,
+
+    CONSTRAINT fk_user_device FOREIGN KEY (user_id) REFERENCES users(user_id),
+    CONSTRAINT fk_type_device FOREIGN KEY (type_id) REFERENCES device_type(type_id)
+);
+
 CREATE TABLE SYSTEM_ACTIVITY_CATEGORIES (
     activity_category_id INT AUTO_INCREMENT PRIMARY KEY,           -- Unique identifier for each activity category
     activity_category_name VARCHAR(100) NOT NULL UNIQUE,           -- Name of the activity category (e.g., "Login", "Interest Change")
