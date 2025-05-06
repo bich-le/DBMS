@@ -114,8 +114,8 @@ CREATE TABLE EMPLOYEE_ACCOUNT (
     FOREIGN KEY (emp_id) REFERENCES EMPLOYEE(emp_id) ON DELETE CASCADE  -- Foreign key to EMPLOYEE table
 );
 CREATE TABLE device_type (
-    type_id INT AUTO_INCREMENT PRIMARY KEY,
-    type_name VARCHAR(50) NOT NULL UNIQUE,      -- Ví dụ: 'desktop', 'laptop', 'thin_client'
+    device_type_id INT AUTO_INCREMENT PRIMARY KEY,
+    device_type_name VARCHAR(50) NOT NULL UNIQUE,      -- Ví dụ: 'desktop', 'laptop', 'thin_client'
     is_portable BOOLEAN DEFAULT FALSE,          -- Có được mang ra ngoài không
     requires_approval BOOLEAN DEFAULT TRUE,     -- Có cần IT duyệt không
     description TEXT
@@ -123,8 +123,8 @@ CREATE TABLE device_type (
 
 CREATE TABLE device (
     device_id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    type_id INT NOT NULL,                        -- Thay vì ghi tên loại trực tiếp
+    employee_account_id INT NOT NULL,
+    device_type_id INT NOT NULL,                        
     device_name VARCHAR(100) NOT NULL,
     mac_address VARCHAR(50) NOT NULL,
     ip_address VARCHAR(45),
@@ -133,7 +133,7 @@ CREATE TABLE device (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     last_checked_at DATETIME,
 
-    CONSTRAINT fk_user_device FOREIGN KEY (user_id) REFERENCES users(user_id),
+    CONSTRAINT fk_employee_device FOREIGN KEY (employee_account_id) REFERENCES employee_account(employee_account_id),
     CONSTRAINT fk_type_device FOREIGN KEY (type_id) REFERENCES device_type(type_id)
 );
 
