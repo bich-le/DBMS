@@ -1,17 +1,17 @@
-INSERT INTO Customers (FirstName, LastName, Address, PhoneNumber, Gender, AccountNo, AccountType, Balance)
+INSERT INTO Customers (FirstName, LastName, Address, PhoneNumber, Gender, Customer_account_id, identification_id)
 VALUES 
-('John', 'Doe', '123 Elm Street', '0123456789', 'Male', 'ACC001', 'Savings', 5000.00),
-('Jane', 'Smith', '456 Oak Avenue', '0987654321', 'Female', 'ACC002', 'Business', 15000.00),
-('David', 'Nguyen', '789 Pine Road', '0909090909', 'Male', 'ACC003', 'Savings', 3000.00),
-('Emily', 'Tran', '101 Maple Blvd', '0911223344', 'Female', 'ACC004', 'Business', 10000.00);
+('John', 'Doe', '123 Elm Street', '0123456789', 'Male', 'ACC001', '001133944355'),
+('Jane', 'Smith', '456 Oak Avenue', '0987654321', 'Female', 'ACC002', '011235673857'),
+('David', 'Nguyen', '789 Pine Road', '0909090909', 'Male', 'ACC003', '032457381382'),
+('Emily', 'Tran', '101 Maple Blvd', '0911223344', 'Female', 'ACC004', '012234165732');
 
-INSERT INTO Branch (Branch_name, Location)
+INSERT INTO Branch (Branch_Name, Branch_Location)
 VALUES
 ('Central Branch', '123 Main St, New York'),
 ('West Branch', '456 West Ave, Los Angeles'),
 ('East Branch', '789 East Rd, Chicago');
 
-INSERT INTO Employees (Emp_Fullname, Emp_Gender, Emp_DOB, Emp_Phone, Emp_Email, Emp_Address, Emp_Hire_date, Emp_Salary, Emp_Branch_ID, Emp_Position)
+INSERT INTO Employees (Emp_Fullname, Emp_Gender, Emp_DOB, Emp_Phone, Emp_Email, Emp_Address, Emp_Hire_date, Emp_Salary, Branch_ID, Emp_Position)
 VALUES
 ('Alice Johnson', 'Female', '1990-05-20', '0901234567', 'alice.j@example.com', '22 Broadway, New York', '2018-03-15', 5000.00, 1, 'Teller'),
 ('Bob Smith', 'Male', '1985-11-12', '0912345678', 'bob.smith@example.com', '55 Sunset Blvd, Los Angeles', '2015-06-01', 7000.00, 2, 'Manager'),

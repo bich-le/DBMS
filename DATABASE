@@ -9,16 +9,15 @@ CREATE TABLE IF NOT EXISTS Customers (
     Address VARCHAR(100),
     PhoneNumber VARCHAR(15),
     Gender VARCHAR(10),
-    AccountNo VARCHAR(20) UNIQUE,
-    AccountType VARCHAR(20),
-    Balance DECIMAL(12, 2)
+    Customer_account_id VARCHAR(20) UNIQUE,
+    identification_id VARCHAR(20),
     
 );
 
 CREATE TABLE IF NOT EXISTS Branch (
-    Branch_id INT AUTO_INCREMENT PRIMARY KEY,
-    Branch_name VARCHAR(100),
-    Location VARCHAR(255)
+    Branch_ID INT AUTO_INCREMENT PRIMARY KEY,
+    Branch_Name VARCHAR(100),
+    Branch_Location VARCHAR(255)
 );
 
 CREATE TABLE IF NOT EXISTS Employees (
@@ -31,9 +30,9 @@ CREATE TABLE IF NOT EXISTS Employees (
     Emp_Address VARCHAR(255),
     Emp_Hire_date DATE,
     Emp_Salary DECIMAL(12, 2),
-    Emp_Branch_ID INT,
+    Branch_ID INT,
     Emp_Position ENUM('Teller', 'Manager', 'Auditor', 'Director'),
-    FOREIGN KEY (Emp_Branch_ID) REFERENCES Branch(Branch_id)
+    FOREIGN KEY (Branch_ID) REFERENCES Branch(Branch_ID)
 );
 
 CREATE TABLE IF NOT EXISTS EmployeeCustomer (
