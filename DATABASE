@@ -95,8 +95,7 @@ CREATE TABLE TRANSACTION (
 );
 
 CREATE TABLE EMPLOYEE_ACCOUNT (
-    employee_account_id INT AUTO_INCREMENT PRIMARY KEY,            -- Unique identifier for the account
-    emp_id INT NOT NULL,                                      -- Foreign key to the employee table
+    emp_id INT PRIMARY KEY,                                      -- Foreign key to the employee table
     username VARCHAR(100) NOT NULL UNIQUE,                 -- Username for the account (must be unique)
     password_hash VARCHAR(255) NOT NULL,                   -- Hashed password (never store plaintext passwords)
     status ENUM('Active', 'Inactive', 'Suspended') DEFAULT 'Active',  -- Account status
