@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 -- DIRECTOR PROCEDURES
 -- ==========================
 
@@ -174,6 +173,3 @@ BEGIN
 END$$
 
 DELIMITER ;
-=======
-
->>>>>>> a72f413f253c618c978bd434f76d6b9b60157e61
