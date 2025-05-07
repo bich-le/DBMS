@@ -54,8 +54,8 @@ CREATE TABLE INTEREST_RATE (
     rate_id INT PRIMARY KEY,
     rate_val DECIMAL(5,3) NOT NULL,
     account_type_id int,
-    min_balance DECIMAL(12,2),
-    max_balance DECIMAL(12,2),
+    min_balance INT(10),
+    max_balance INT(10),
     status ENUM('Active', 'Inactive') DEFAULT "Active",
     FOREIGN KEY (account_type_id) REFERENCES ACCOUNT_TYPE(account_type_id)
 );
@@ -73,37 +73,27 @@ CREATE TABLE CUSTOMER_ACCOUNT (
     interest_rate_id INT,
     FOREIGN KEY (customer_id) REFERENCES CUSTOMERs(customer_id),
     FOREIGN KEY (account_type_id) REFERENCES ACCOUNT_TYPE(account_type_id),
-	FOREIGN KEY (interest_rate_id) REFERENCES INTEREST_RATE(interest_rate_id)
+    FOREIGN KEY (interest_rate_id) REFERENCES INTEREST_RATE(interest_rate_id)
 );
-
+CREATE TABLE TRANSACTION_TYPE(
+    transaction_type_id TINYINT AUTO INCREMENT,
+    transaction_type_name VARCHAR(20) NOT NULL,
+    description TEXT
+);
 CREATE TABLE TRANSACTION (
-    transaction_id INT auto_increment PRIMARY KEY,
+    transaction_id CHAR(36) auto_increment PRIMARY KEY,
     customer_account_id INT(10) NOT NULL,
     amount INT(9) NOT NULL,
-    transaction_type_id ENUM('POS', 'DEP', 'WDL', 'TRF', 'PMT', 'ACH', 'INT', 'FEE', 'CHK', 'REF') NOT NULL,
-    direction ENUM('In', 'Out') NOT NULL,
-    related_customer_account_id INT(10) NOT NULL,
+    transaction_type_id ,
+    direction ENUM('Debit', 'Credit') NOT NULL,
+    related_customer_account_id INT(10) ,
     transaction_time DATETIME DEFAULT CURRENT_TIMESTAMP,
     transaction_status ENUM('Successful', 'Failed') NOT NULL,
-    mode_id ENUM('Online', 'Offline') NOT NULL,
 	FOREIGN KEY (customer_account_id) REFERENCES CUSTOMER_ACCOUNT(customer_account_id) ON DELETE CASCADE,
-   	FOREIGN KEY (related_customer_account_id) REFERENCES CUSTOMER_ACCOUNT(customer_account_id) ON DELETE CASCADE
+   	FOREIGN KEY (related_customer_account_id) REFERENCES CUSTOMER_ACCOUNT(customer_account_id) ON DELETE SET NULL,
+	FOREIGN KEY (transaction_type_id) REFERENCES TRANSACTION_TYPE_ID(transaction_type_id) ON DELETE SET NULL,
 );
-CREATE TABLE EMPLOYEE (
-    emp_id INT AUTO_INCREMENT PRIMARY KEY,      -- Unique identifier for each employee
-    first_name VARCHAR(100) NOT NULL,                -- Employee's first name
-    last_name VARCHAR(100) NOT NULL,                 -- Employee's last name
-    job_title VARCHAR(100) NOT NULL,                 -- Job title of the employee
-    department VARCHAR(100),                         -- Department the employee works in
-    salary DECIMAL(10, 2),                           -- Employee's salary
-    hire_date DATE NOT NULL,                         -- Date the employee was hired
-    email VARCHAR(255) NOT NULL UNIQUE,              -- Employee's email (must be unique)
-    phone_number VARCHAR(15),                        -- Employee's phone number
-    address TEXT,                                    -- Employee's address
-    account_status ENUM('Active', 'Inactive', 'Suspended') DEFAULT 'Active', -- Account status
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,   -- Account creation timestamp
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP  -- Last update timestamp
-);
+
 CREATE TABLE EMPLOYEE_ACCOUNT (
     employee_account_id INT AUTO_INCREMENT PRIMARY KEY,            -- Unique identifier for the account
     emp_id INT NOT NULL,                                      -- Foreign key to the employee table
@@ -113,7 +103,7 @@ CREATE TABLE EMPLOYEE_ACCOUNT (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,         -- Timestamp when the account was created
     FOREIGN KEY (emp_id) REFERENCES EMPLOYEE(emp_id) ON DELETE CASCADE  -- Foreign key to EMPLOYEE table
 );
-CREATE TABLE device_type (
+CREATE TABLE DEVICE_TYPE (
     device_type_id INT AUTO_INCREMENT PRIMARY KEY,
     device_type_name VARCHAR(50) NOT NULL UNIQUE,      -- Ví dụ: 'desktop', 'laptop', 'thin_client'
     is_portable BOOLEAN DEFAULT FALSE,          -- Có được mang ra ngoài không
@@ -121,9 +111,8 @@ CREATE TABLE device_type (
     description TEXT
 );
 
-CREATE TABLE device (
+CREATE TABLE DEVICE (
     device_id INT AUTO_INCREMENT PRIMARY KEY,
-    employee_account_id INT NOT NULL,
     device_type_id INT NOT NULL,                        
     device_name VARCHAR(100) NOT NULL,
     mac_address VARCHAR(50) NOT NULL,
@@ -147,17 +136,16 @@ CREATE TABLE SYSTEM_ACTIVITIES_HISTORY (
     activity_id INT AUTO_INCREMENT PRIMARY KEY,
     activity_category_id INT NOT NULL,
     activity_time DATETIME NOT NULL,
-    employee_account_id INT NOT NULL,
-    device_id INT NOT NULL,
+    employee_account_id INT ,
+    device_id INT ,
     objective_id VARCHAR(20),
     old_value VARCHAR(15),
     new_value VARCHAR(15),
     description TEXT,
     status ENUM('Successful', 'Failed') NOT NULL,
     FOREIGN KEY (activity_category_id) REFERENCES SYSTEM_ACTIVITY_CATEGORIES(activity_category_id) ON DELETE CASCADE,
-    FOREIGN KEY (employee_account_id) REFERENCES EMPLOYEE_ACCOUNT(employee_account_id) ON DELETE CASCADE,
-    FOREIGN KEY (device_id) REFERENCES DEVICE(device_id) ON DELETE CASCADE
-
+    FOREIGN KEY (employee_account_id) REFERENCES EMPLOYEE_ACCOUNT(employee_account_id) ON DELETE SET NULL,
+    FOREIGN KEY (device_id) REFERENCES DEVICE(device_id) ON DELETE SET NULL
 );
 
 
@@ -169,6 +157,7 @@ CREATE TABLE INTERNAL_LOGIN_HISTORY (
     device_id INT,
     PRIMARY KEY (employee_account_id, device_id, login_time),
     status ENUM('Successful', 'Failed') NOT NULL,
+    failure_reason TEXT,
     FOREIGN KEY (employee_account_id) REFERENCES EMPLOYEE_ACCOUNT(employee_account_id) ON DELETE SET NULL,
     FOREIGN KEY (device_id) REFERENCES DEVICE(device_id) ON DELETE SET NULL
 );
@@ -190,13 +179,13 @@ CREATE TABLE FRAUD_PATTERN (
 );
 
 CREATE TABLE SUSPICION (
-    transaction_id INT PRIMARY KEY,
+    transaction_id CHAR(36) ,
     fraud_pattern_id INT,
-    detected_time DATETIME NOT NULL,
-    location_info TEXT,
+    detected_time DATETIME,
     severity_level VARCHAR(50) NOT NULL,
     status ENUM('Unresolved', 'Investigating', 'Resolved', 'False_positive') DEFAULT 'Unresolved',
-    FOREIGN KEY (transaction_id) REFERENCES TRANSACTION(transaction_id) ON DELETE CASCADE,
+    	PRIMARY KEY(transaction_id, fraud_pattern_id, detected_time),
+	FOREIGN KEY (transaction_id) REFERENCES TRANSACTION(transaction_id) ON DELETE CASCADE,
 	FOREIGN KEY (fraud_pattern_id) REFERENCES FRAUD_PATTERN(fraud_pattern_id) ON DELETE SET NULL
 );
 
