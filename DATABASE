@@ -9,9 +9,9 @@ CREATE TABLE IF NOT EXISTS Customers (
     Address VARCHAR(100),
     PhoneNumber VARCHAR(15),
     Gender VARCHAR(10),
-    Customer_account_id VARCHAR(20) UNIQUE,
+    customer_account_id int,
     identification_id VARCHAR(20),
-    
+    FOREIGN KEY (customer_account_id) REFERENCES CUSTOMER_ACCOUNT(customer_account_id),
 );
 
 CREATE TABLE IF NOT EXISTS Branch (
@@ -37,7 +37,6 @@ CREATE TABLE IF NOT EXISTS Employees (
 
 CREATE TABLE IF NOT EXISTS EmployeeCustomer (
     Emp_ID INT,
-    Customer_ID INT,
     role VARCHAR(50),
     assigned_date DATE,
     PRIMARY KEY (Emp_ID, Customer_ID, assigned_date),
@@ -45,10 +44,7 @@ CREATE TABLE IF NOT EXISTS EmployeeCustomer (
     FOREIGN KEY (Customer_ID) REFERENCES Customers(Customer_ID)
 );
 
-CREATE TABLE ACCOUNT_TYPE (
-    account_type_id INT PRIMARY KEY,
-    account_type_name VARCHAR(50)
-);
+
 CREATE TABLE INTEREST_RATE (
     rate_id INT PRIMARY KEY,
     rate_val DECIMAL(5,3) NOT NULL,
@@ -62,17 +58,34 @@ CREATE TABLE INTEREST_RATE (
 
 CREATE TABLE CUSTOMER_ACCOUNT (
     customer_account_id int auto_increment primary key,
-    customer_id INT,                                    -- ID của khách hàng (liên kết với bảng USERS)
-    account_type_id int NOT NULL,  
-    account_balance DECIMAL(12, 2) NOT NULL,                  -- Số dư tài khoản
-    account_status ENUM('Active', 'Inactive', 'Frozen') DEFAULT 'Active',  -- Trạng thái tài khoản
-    opening_date DATETIME DEFAULT CURRENT_TIMESTAMP, -- Ngày mở tài khoản
-    last_activity_date DATETIME,                     -- Ngày giao dịch cuối cùng
-    transaction_limit DECIMAL(12, 2) NOT NULL,                    -- Giới hạn tài khoản (nếu có)
-    interest_rate_id INT,
-    FOREIGN KEY (customer_id) REFERENCES CUSTOMERs(customer_id),
-    FOREIGN KEY (account_type_id) REFERENCES ACCOUNT_TYPE(account_type_id),
-    FOREIGN KEY (interest_rate_id) REFERENCES INTEREST_RATE(interest_rate_id)
+    customer_id INT,                                    -- ID của khách hàng (liên kết với bảng USERS)                  -- Số dư tài khoản
+    account_status ENUM('Active', 'Temporary Locked', 'Locked') DEFAULT 'Active',  -- Trạng thái tài khoản
+    opening_date DATETIME DEFAULT CURRENT_TIMESTAMP, -- Ngày mở tài khoản                   -- Ngày giao dịch cuối cùng
+    FOREIGN KEY (customer_id) REFERENCES Customers(customer_id),
+);
+CREATE TABLE SAVING_ACCOUNT(
+    customer_account_id INT primary key,
+    rate_id int,
+    saving_acc_balance int,
+    FOREIGN KEY (customer_account_id) REFERENCES CUSTOMER_ACCOUNT(customer_account_id),
+    FOREIGN KEY (rate_id) REFERENCES INTEREST_RATE(rate_id)
+);
+
+CREATE TABLE CURRENT_ACCOUNT(
+    customer_account_id int primary key,
+    current_acc_balance int,
+    daily_transfer_limit decimal(10, 2),
+    FOREIGN KEY (customer_account_id) REFERENCES CUSTOMER_ACCOUNT(customer_account_id),
+);
+
+CREATE TABLE FIXED_DEPOSIT_ACCOUNT(
+    customer_account_id INT PRIMARY KEY,
+    deposit_amount DECIMAL(12, 2) NOT NULL,
+    deposit_date DATE NOT NULL,
+    maturity_date DATE NOT NULL,
+    rate_id INT,
+    FOREIGN KEY (customer_account_id) REFERENCES CUSTOMER_ACCOUNT(customer_account_id),
+    FOREIGN KEY (rate_id) REFERENCES INTEREST_RATE(rate_id)
 );
 CREATE TABLE TRANSACTION_TYPE(
     transaction_type_id TINYINT AUTO INCREMENT,
