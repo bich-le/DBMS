@@ -1,1 +1,175 @@
+-- DIRECTOR PROCEDURES
+-- ==========================
 
+-- View customer info
+DELIMITER $$
+CREATE PROCEDURE Director_View_Customers()
+BEGIN
+    SELECT * FROM Customers;
+END$$
+
+-- View all employee info
+CREATE PROCEDURE Director_View_All_Employees()
+BEGIN
+    SELECT * FROM Employees;
+END$$
+
+-- View all branch managers
+CREATE PROCEDURE Director_View_Managers()
+BEGIN
+    SELECT * FROM Employees WHERE Emp_Position = 'Manager';
+END$$
+
+-- View all transactions
+CREATE PROCEDURE Director_View_All_Transactions()
+BEGIN
+    SELECT * FROM Transactions; -- Requires Transactions table
+END$$
+
+-- ==========================
+-- MANAGER PROCEDURES
+-- ==========================
+
+-- View customer info
+CREATE PROCEDURE Manager_View_Customers(IN branch_id INT)
+BEGIN
+    SELECT c.* FROM Customers c
+    JOIN EmployeeCustomer ec ON c.Customer_ID = ec.Customer_ID
+    JOIN Employees e ON ec.Emp_ID = e.Emp_ID
+    WHERE e.Branch_ID = branch_id;
+END$$
+
+-- Update customer info
+CREATE PROCEDURE Manager_Update_Customer(
+    IN cust_id INT,
+    IN phone VARCHAR(15),
+    IN addr VARCHAR(100)
+)
+BEGIN
+    UPDATE Customers
+    SET PhoneNumber = phone,
+        Address = addr
+    WHERE Customer_ID = cust_id;
+END$$
+
+-- Update employee info in branch
+CREATE PROCEDURE Manager_Update_Employee(
+    IN emp_id INT,
+    IN salary DECIMAL(12,2)
+)
+BEGIN
+    UPDATE Employees
+    SET Emp_Salary = salary
+    WHERE Emp_ID = emp_id;
+END$$
+
+-- Add new employee
+CREATE PROCEDURE Manager_Add_Employee(
+    IN fullname VARCHAR(100),
+    IN gender ENUM('Male','Female','Other'),
+    IN dob DATE,
+    IN phone VARCHAR(15),
+    IN email VARCHAR(100),
+    IN address VARCHAR(255),
+    IN hire_date DATE,
+    IN salary DECIMAL(12,2),
+    IN branch_id INT,
+    IN position ENUM('Teller','Manager','Auditor','Director')
+)
+BEGIN
+    INSERT INTO Employees (Emp_Fullname, Emp_Gender, Emp_DOB, Emp_Phone, Emp_Email, Emp_Address, Emp_Hire_date, Emp_Salary, Branch_ID, Emp_Position)
+    VALUES (fullname, gender, dob, phone, email, address, hire_date, salary, branch_id, position);
+END$$
+
+-- Remove employee
+CREATE PROCEDURE Manager_Remove_Employee(IN emp_id INT)
+BEGIN
+    DELETE FROM Employees WHERE Emp_ID = emp_id;
+END$$
+
+-- View transactions by branch
+CREATE PROCEDURE Manager_View_Transactions(IN branch_id INT)
+BEGIN
+    SELECT * FROM Transactions WHERE Branch_ID = branch_id;
+END$$
+
+-- Update interest rate
+CREATE PROCEDURE Manager_Update_InterestRate(IN new_rate DECIMAL(5,2))
+BEGIN
+    UPDATE InterestRateTable SET rate = new_rate, updated_at = NOW(); -- Requires InterestRateTable
+END$$
+
+-- ==========================
+-- TELLER PROCEDURES
+-- ==========================
+
+-- View customer info
+CREATE PROCEDURE Teller_View_Customer(IN cust_id INT)
+BEGIN
+    SELECT * FROM Customers WHERE Customer_ID = cust_id;
+END$$
+
+-- Add or update customer account
+CREATE PROCEDURE Teller_AddOrUpdate_Account(
+    IN cust_id INT,
+    IN account_id VARCHAR(20)
+)
+BEGIN
+    UPDATE Customers SET Customer_account_id = account_id WHERE Customer_ID = cust_id;
+    -- or insert if needed
+END$$
+
+-- Perform transaction (withdraw, deposit, transfer)
+CREATE PROCEDURE Teller_Transaction(
+    IN trans_type VARCHAR(10), -- 'deposit', 'withdraw', 'transfer'
+    IN amount DECIMAL(12,2),
+    IN from_account VARCHAR(20),
+    IN to_account VARCHAR(20),
+    OUT status_message VARCHAR(255)
+)
+BEGIN
+    -- Implementation depending on trans_type, requires Accounts table
+    SET status_message = 'Transaction logic placeholder';
+END$$
+
+-- View branch transaction history
+CREATE PROCEDURE Teller_View_Branch_Transactions(IN branch_id INT)
+BEGIN
+    SELECT * FROM Transactions WHERE Branch_ID = branch_id;
+END$$
+
+-- View report
+CREATE PROCEDURE Teller_Generate_Report()
+BEGIN
+    SELECT COUNT(*) AS Total_Customers, SUM(Emp_Salary) AS Total_Salary FROM Employees;
+END$$
+
+-- Log suspicion
+CREATE PROCEDURE Teller_Log_Suspicion(IN emp_id INT, IN details TEXT)
+BEGIN
+    INSERT INTO SuspicionLog (Emp_ID, Details, Logged_At) VALUES (emp_id, details, NOW()); -- Requires SuspicionLog
+END$$
+
+-- System structure change log (for internal auditing)
+CREATE PROCEDURE Teller_View_System_Changes()
+BEGIN
+    SELECT * FROM SystemChangeLog; -- Requires SystemChangeLog
+END$$
+
+-- ==========================
+-- AUDITOR PROCEDURES
+-- ==========================
+
+-- View interest rate change log
+CREATE PROCEDURE Auditor_View_InterestRate_Log()
+BEGIN
+    SELECT * FROM InterestRateLog; -- Requires InterestRateLog
+END$$
+
+-- View branch transaction history
+CREATE PROCEDURE Auditor_View_Transactions(IN branch_id INT)
+BEGIN
+    SELECT * FROM Transactions WHERE Branch_ID = branch_id;
+END$$
+
+DELIMITER ;
