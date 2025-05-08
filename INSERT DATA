@@ -28,3 +28,30 @@ VALUES
 (4, 4, 'Audit Check', '2023-05-12'),
 (5, 1, 'Executive Review', '2023-06-08'),
 (5, 3, 'Loan Approval', '2023-07-18');
+
+# Báo cáo
+INSERT INTO REPORT (report_name, report_description, procedure_name) VALUES 
+('System-wide Transaction History', 'All transactions in the system', 'sp_system_transactions'),
+('Branch Transactions', 'Transactions grouped by branch', 'sp_branch_transactions'),
+('Employee Transactions', 'Transactions handled by employee', 'sp_employee_transactions'),
+('Suspicious Transactions', 'Suspicious or flagged transactions', 'sp_suspicious_transactions'),
+('System Activity Log', 'All activities within the system', 'sp_system_activity_log'),
+('Interest Rate Changes', 'History of interest rate changes', 'sp_interest_rate_log'),
+('Customer Reports by Branch', 'List of customers grouped by branch', 'sp_customers_by_branch'),
+('Account Summary', 'Summary of accounts and balances', 'sp_account_summary');
+
+-- Director ('D') được xem toàn bộ
+INSERT INTO REPORT_ACCESS VALUES 
+(1, 'D'), (2, 'D'), (3, 'D'), (4, 'D'), (5, 'D'), (6, 'D'), (7, 'D'), (8, 'D');
+
+-- Manager ('M') xem 1, 2, 3, 5, 7, 8
+INSERT INTO REPORT_ACCESS VALUES 
+(1, 'M'), (2, 'M'), (3, 'M'), (5, 'M'), (7, 'M'), (8, 'M');
+
+-- Teller ('T') xem 1, 2, 3, 8
+INSERT INTO REPORT_ACCESS VALUES 
+(1, 'T'), (2, 'T'), (3, 'T'), (8, 'T');
+
+-- Auditor ('A') xem 1, 3, 4, 5, 6, 8
+INSERT INTO REPORT_ACCESS VALUES 
+(1, 'A'), (3, 'A'), (4, 'A'), (5, 'A'), (6, 'A'), (8, 'A');

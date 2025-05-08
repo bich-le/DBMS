@@ -199,6 +199,41 @@ CREATE TABLE SUSPICION (
 	FOREIGN KEY (transaction_id) REFERENCES TRANSACTION(transaction_id) ON DELETE CASCADE,
 	FOREIGN KEY (fraud_pattern_id) REFERENCES FRAUD_PATTERN(fraud_pattern_id) ON DELETE SET NULL
 );
+# Báo cáo
+CREATE TABLE REPORT (
+    report_id INT AUTO_INCREMENT PRIMARY KEY,
+    report_name VARCHAR(100) NOT NULL,
+    report_description TEXT,
+    procedure_name VARCHAR(100) NOT NULL  -- Tên stored procedure được gọi để tạo báo cáo
+);
+
+CREATE TABLE REPORT_ACCESS (
+    report_id INT,
+    emp_position ENUM('D','M','T','A'),  -- Director, Manager, Teller, Auditor
+    PRIMARY KEY (report_id, emp_position),
+    FOREIGN KEY (report_id) REFERENCES REPORT(report_id)
+);
+
+CREATE TABLE REPORT_FILTER (
+    report_id INT,
+    filter_name VARCHAR(100),
+    filter_type VARCHAR(50),
+    is_required BOOLEAN,
+    FOREIGN KEY (report_id) REFERENCES report(report_id)
+);
+
+#View employee_allowed_reports – Hiển thị các báo cáo mà nhân viên được truy cập
+CREATE OR REPLACE VIEW employee_allowed_reports AS
+SELECT 
+    e.Emp_ID, 
+    e.Emp_Position, 
+    r.report_id, 
+    r.report_name, 
+    r.report_description,
+    r.procedure_name
+FROM Employees e
+JOIN REPORT_ACCESS ra ON e.Emp_Position = ra.emp_position
+JOIN REPORT r ON ra.report_id = r.report_id;
 
 
 
