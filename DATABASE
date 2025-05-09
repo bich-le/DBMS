@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS EMPLOYEES (
 
 CREATE TABLE IF NOT EXISTS EMPLOYEE_CUSTOMER (
     emp_id INT,
-    customer_id int,
+    customer_ID int,
     role VARCHAR(50),
     assigned_date DATE,
     PRIMARY KEY (emp_id, customer_id),
@@ -45,16 +45,12 @@ CREATE TABLE IF NOT EXISTS EMPLOYEE_CUSTOMER (
 
 CREATE TABLE CUSTOMER_ACCOUNT (
     customer_account_id int auto_increment primary key,
+    customer_ID int,
     account_status ENUM('Active', 'Temporary Locked', 'Locked') DEFAULT 'Active', 
-    opening_date DATETIME DEFAULT CURRENT_TIMESTAMP
-    account_type ENUM('Saving', 'Current', 'Fixed') NOT NULL;
+    opening_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    account_type ENUM('Saving', 'Current', 'Fixed') NOT NULL,
+    customer_account_id INT
 );
-
-ALTER TABLE CUSTOMERS
-ADD COLUMN customer_account_id INT,
-ADD CONSTRAINT fk_customer_account
-FOREIGN KEY (customer_account_id)
-REFERENCES CUSTOMER_ACCOUNT(customer_account_id);
 
 CREATE TABLE IF NOT EXISTS INTEREST_RATE (
     rate_id INT PRIMARY KEY,
@@ -62,7 +58,7 @@ CREATE TABLE IF NOT EXISTS INTEREST_RATE (
     account_type_id int,
     min_balance INT(10),
     max_balance INT(10),
-    status ENUM('Active', 'Inactive') DEFAULT "Active",
+    status ENUM('Active', 'Inactive') DEFAULT "Active"
 );
 
 CREATE TABLE SAVING_ACCOUNT(
