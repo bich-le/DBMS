@@ -2,16 +2,14 @@ use dbms;
 drop database PROJECT;
 CREATE database PROJECT;
 USE PROJECT;
-CREATE TABLE IF NOT EXISTS Customers (
-    Customer_ID INT AUTO_INCREMENT PRIMARY KEY,
-    FirstName VARCHAR(50),
-    LastName VARCHAR(50),
-    Address VARCHAR(100),
-    PhoneNumber VARCHAR(15),
-    Gender VARCHAR(10),
-    customer_account_id int,
-    identification_id VARCHAR(20),
-    FOREIGN KEY (customer_account_id) REFERENCES CUSTOMER_ACCOUNT(customer_account_id),
+CREATE TABLE IF NOT EXISTS CUSTOMERS (
+    customer_ID INT AUTO_INCREMENT PRIMARY KEY,
+    firstName VARCHAR(50),
+    lastName VARCHAR(50),
+    address VARCHAR(100),
+    phoneNumber VARCHAR(15),
+    gender VARCHAR(10),
+    identification_id VARCHAR(20)
 );
 
 CREATE TABLE IF NOT EXISTS Branch (
@@ -44,25 +42,27 @@ CREATE TABLE IF NOT EXISTS EmployeeCustomer (
     FOREIGN KEY (Customer_ID) REFERENCES Customers(Customer_ID)
 );
 
-
-CREATE TABLE INTEREST_RATE (
-    rate_id INT PRIMARY KEY,
-    rate_val DECIMAL(5,3) NOT NULL,
-    account_type_id int,
-    min_balance INT(10),
-    max_balance INT(10),
-    status ENUM('Active', 'Inactive') DEFAULT "Active",
-    FOREIGN KEY (account_type_id) REFERENCES ACCOUNT_TYPE(account_type_id)
-);
-
-
 CREATE TABLE CUSTOMER_ACCOUNT (
     customer_account_id int auto_increment primary key,
-    customer_id INT,                                    -- ID của khách hàng (liên kết với bảng USERS)                  -- Số dư tài khoản
-    account_status ENUM('Active', 'Temporary Locked', 'Locked') DEFAULT 'Active',  -- Trạng thái tài khoản
-    opening_date DATETIME DEFAULT CURRENT_TIMESTAMP, -- Ngày mở tài khoản                   -- Ngày giao dịch cuối cùng
-    FOREIGN KEY (customer_id) REFERENCES Customers(customer_id),
+    account_status ENUM('Active', 'Temporary Locked', 'Locked') DEFAULT 'Active', 
+    opening_date DATETIME DEFAULT CURRENT_TIMESTAMP
+    account_type ENUM('Saving', 'Current', 'Fixed') NOT NULL;
 );
+
+ALTER TABLE CUSTOMERS
+ADD COLUMN customer_account_id INT,
+ADD CONSTRAINT fk_customer_account
+FOREIGN KEY (customer_account_id)
+REFERENCES CUSTOMER_ACCOUNT(customer_account_id);
+
+CREATE TABLE IF NOT EXISTS INTEREST_RATE (
+    rate_id INT PRIMARY KEY,
+    rate_val DECIMAL(5,3) NOT NULL,
+    min_balance INT,
+    max_balance INT,
+    status ENUM('Active', 'Inactive') DEFAULT "Active"
+);
+
 CREATE TABLE SAVING_ACCOUNT(
     customer_account_id INT primary key,
     rate_id int,
@@ -75,7 +75,7 @@ CREATE TABLE CURRENT_ACCOUNT(
     customer_account_id int primary key,
     current_acc_balance int,
     daily_transfer_limit decimal(10, 2),
-    FOREIGN KEY (customer_account_id) REFERENCES CUSTOMER_ACCOUNT(customer_account_id),
+    FOREIGN KEY (customer_account_id) REFERENCES CUSTOMER_ACCOUNT(customer_account_id)
 );
 
 CREATE TABLE FIXED_DEPOSIT_ACCOUNT(
