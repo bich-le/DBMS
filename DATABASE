@@ -2,44 +2,47 @@ use dbms;
 drop database PROJECT;
 CREATE database PROJECT;
 USE PROJECT;
-CREATE TABLE IF NOT EXISTS CUSTOMERS (
-    customer_ID INT AUTO_INCREMENT PRIMARY KEY,
-    firstName VARCHAR(50),
-    lastName VARCHAR(50),
-    address VARCHAR(100),
-    phoneNumber VARCHAR(15),
-    gender VARCHAR(10),
-    identification_id VARCHAR(20)
+CREATE TABLE IF NOT EXISTS Customers (
+    Customer_ID INT AUTO_INCREMENT PRIMARY KEY,
+    FirstName VARCHAR(50),
+    LastName VARCHAR(50),
+    Address VARCHAR(100),
+    PhoneNumber VARCHAR(15),
+    Gender VARCHAR(10),
+    customer_account_id int,
+    identification_id VARCHAR(20),
+    FOREIGN KEY (customer_account_id) REFERENCES CUSTOMER_ACCOUNT(customer_account_id),
 );
 
-CREATE TABLE IF NOT EXISTS Branch (
-    Branch_ID INT AUTO_INCREMENT PRIMARY KEY,
-    Branch_Name VARCHAR(100),
-    Branch_Location VARCHAR(255)
+CREATE TABLE IF NOT EXISTS BRANCH (
+    branch_id INT AUTO_INCREMENT PRIMARY KEY,
+    branch_name VARCHAR(100),
+    branch_location VARCHAR(255)
 );
 
-CREATE TABLE IF NOT EXISTS Employees (
-    Emp_ID INT AUTO_INCREMENT PRIMARY KEY,
-    Emp_Fullname VARCHAR(100),
-    Emp_Gender ENUM('Male', 'Female', 'Other'),
-    Emp_DOB DATE,
-    Emp_Phone VARCHAR(15),
-    Emp_Email VARCHAR(100),
-    Emp_Address VARCHAR(255),
-    Emp_Hire_date DATE,
-    Emp_Salary DECIMAL(12, 2),
-    Branch_ID INT,
-    Emp_Position ENUM('Teller', 'Manager', 'Auditor', 'Director'),
-    FOREIGN KEY (Branch_ID) REFERENCES Branch(Branch_ID)
+CREATE TABLE IF NOT EXISTS EMPLOYEES (
+    emp_id INT AUTO_INCREMENT PRIMARY KEY,
+    emp_fullname VARCHAR(100),
+    emp_gender ENUM('Male', 'Female', 'Other'),
+    emp_dob DATE,
+    emp_phone VARCHAR(15),
+    emp_email VARCHAR(100),
+    emp_address VARCHAR(255),
+    emp_hire_date DATE,
+    emp_salary DECIMAL(12, 2),
+    branch_id INT,
+    emp_position ENUM('Teller', 'Manager', 'Auditor', 'Director'),
+    FOREIGN KEY (branch_id) REFERENCES BRANCH(branch_id)
 );
 
-CREATE TABLE IF NOT EXISTS EmployeeCustomer (
-    Emp_ID INT,
+CREATE TABLE IF NOT EXISTS EMPLOYEE_CUSTOMER (
+    emp_id INT,
+    customer_id int,
     role VARCHAR(50),
     assigned_date DATE,
-    PRIMARY KEY (Emp_ID, Customer_ID, assigned_date),
-    FOREIGN KEY (Emp_ID) REFERENCES Employees(Emp_ID),
-    FOREIGN KEY (Customer_ID) REFERENCES Customers(Customer_ID)
+    PRIMARY KEY (emp_id, customer_id),
+    FOREIGN KEY (emp_id) REFERENCES EMPLOYEES(emp_id),
+    FOREIGN KEY (customer_id) REFERENCES CUSTOMERS(customer_id)
 );
 
 CREATE TABLE CUSTOMER_ACCOUNT (
@@ -58,11 +61,21 @@ REFERENCES CUSTOMER_ACCOUNT(customer_account_id);
 CREATE TABLE IF NOT EXISTS INTEREST_RATE (
     rate_id INT PRIMARY KEY,
     rate_val DECIMAL(5,3) NOT NULL,
-    min_balance INT,
-    max_balance INT,
-    status ENUM('Active', 'Inactive') DEFAULT "Active"
+    account_type_id int,
+    min_balance INT(10),
+    max_balance INT(10),
+    status ENUM('Active', 'Inactive') DEFAULT "Active",
+    FOREIGN KEY (account_type_id) REFERENCES ACCOUNT_TYPE(account_type_id)
 );
 
+
+CREATE TABLE CUSTOMER_ACCOUNT (
+    customer_account_id int auto_increment primary key,
+    customer_id INT,                                    -- ID của khách hàng (liên kết với bảng USERS)                  -- Số dư tài khoản
+    account_status ENUM('Active', 'Temporary Locked', 'Locked') DEFAULT 'Active',  -- Trạng thái tài khoản
+    opening_date DATETIME DEFAULT CURRENT_TIMESTAMP, -- Ngày mở tài khoản                   -- Ngày giao dịch cuối cùng
+    FOREIGN KEY (customer_id) REFERENCES Customers(customer_id),
+);
 CREATE TABLE SAVING_ACCOUNT(
     customer_account_id INT primary key,
     rate_id int,

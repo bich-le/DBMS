@@ -1,17 +1,17 @@
-INSERT INTO Customers (FirstName, LastName, Address, PhoneNumber, Gender, Customer_account_id, identification_id)
+INSERT INTO CUSTOMERS (first_name, last_name, address, phone_number, gender, customer_account_id, identification_id)
 VALUES 
 ('John', 'Doe', '123 Elm Street', '0123456789', 'Male', 'ACC001', '001133944355'),
 ('Jane', 'Smith', '456 Oak Avenue', '0987654321', 'Female', 'ACC002', '011235673857'),
 ('David', 'Nguyen', '789 Pine Road', '0909090909', 'Male', 'ACC003', '032457381382'),
 ('Emily', 'Tran', '101 Maple Blvd', '0911223344', 'Female', 'ACC004', '012234165732');
 
-INSERT INTO Branch (Branch_Name, Branch_Location)
+INSERT INTO BRANCH (branch_name, branch_location)
 VALUES
 ('Central Branch', '123 Main St, New York'),
 ('West Branch', '456 West Ave, Los Angeles'),
 ('East Branch', '789 East Rd, Chicago');
 
-INSERT INTO Employees (Emp_Fullname, Emp_Gender, Emp_DOB, Emp_Phone, Emp_Email, Emp_Address, Emp_Hire_date, Emp_Salary, Branch_ID, Emp_Position)
+INSERT INTO EMPLOYEES (emp_fullname, emp_gender, emp_dob, emp_phone, emp_email, emp_address, emp_hire_date, emp_salary, branch_id, emp_position)
 VALUES
 ('Alice Johnson', 'Female', '1990-05-20', '0901234567', 'alice.j@example.com', '22 Broadway, New York', '2018-03-15', 5000.00, 1, 'Teller'),
 ('Bob Smith', 'Male', '1985-11-12', '0912345678', 'bob.smith@example.com', '55 Sunset Blvd, Los Angeles', '2015-06-01', 7000.00, 2, 'Manager'),
@@ -19,7 +19,7 @@ VALUES
 ('Diana Prince', 'Female', '1988-03-22', '0934567890', 'diana.p@example.com', '10 Liberty St, New York', '2016-09-01', 6500.00, 1, 'Auditor'),
 ('Edward Lee', 'Male', '1979-10-30', '0945678901', 'edward.l@example.com', '66 Ocean Ave, Los Angeles', '2012-04-25', 9000.00, 2, 'Director');
 
-INSERT INTO EmployeeCustomer (Emp_ID, Customer_ID, role, assigned_date)
+INSERT INTO EMPLOYEE_CUSTOMER (emp_id, customer_id, role, assigned_date)
 VALUES
 (1, 1, 'Account Opening', '2023-01-10'),
 (1, 2, 'Loan Consultation', '2023-02-15'),
@@ -28,6 +28,14 @@ VALUES
 (4, 4, 'Audit Check', '2023-05-12'),
 (5, 1, 'Executive Review', '2023-06-08'),
 (5, 3, 'Loan Approval', '2023-07-18');
+
+INSERT INTO EMPLOYEE_ACCOUNT (emp_id, username, password_hash, status)
+VALUES
+(1, 'alice', 'pass123', 'Active'),
+(2, 'bob', 'pass123', 'Active'),
+(3, 'charlie', 'pass123', 'Active'),
+(4, 'diana', 'pass123', 'Suspended'),
+(5, 'edward', 'pass123', 'Inactive');
 
 # Báo cáo
 INSERT INTO REPORT (report_name, report_description, procedure_name) VALUES 
