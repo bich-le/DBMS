@@ -49,7 +49,7 @@ CREATE TABLE CUSTOMER_ACCOUNT (
     account_status ENUM('Active', 'Temporary Locked', 'Locked') DEFAULT 'Active', 
     opening_date DATETIME DEFAULT CURRENT_TIMESTAMP,
     account_type ENUM('Saving', 'Current', 'Fixed') NOT NULL,
-    customer_account_id INT
+    FOREIGN KEY (customer_ID) REFERENCES CUSTOMERS(customer_ID)
 );
 
 CREATE TABLE IF NOT EXISTS INTEREST_RATE (
