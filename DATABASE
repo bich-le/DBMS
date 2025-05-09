@@ -3,7 +3,7 @@ drop database PROJECT;
 CREATE database PROJECT;
 USE PROJECT;
 CREATE TABLE IF NOT EXISTS CUSTOMERS (
-    customer_ID INT AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT AUTO_INCREMENT PRIMARY KEY,
     firstName VARCHAR(50),
     lastName VARCHAR(50),
     address VARCHAR(100),
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS EMPLOYEES (
 
 CREATE TABLE IF NOT EXISTS EMPLOYEE_CUSTOMER (
     emp_id INT,
-    customer_ID int,
+    customer_id int,
     role VARCHAR(50),
     assigned_date DATE,
     PRIMARY KEY (emp_id, customer_id),
@@ -45,11 +45,11 @@ CREATE TABLE IF NOT EXISTS EMPLOYEE_CUSTOMER (
 
 CREATE TABLE CUSTOMER_ACCOUNT (
     customer_account_id int auto_increment primary key,
-    customer_ID int,
+    customer_id int,
     account_status ENUM('Active', 'Temporary Locked', 'Locked') DEFAULT 'Active', 
     opening_date DATETIME DEFAULT CURRENT_TIMESTAMP,
     account_type ENUM('Saving', 'Current', 'Fixed') NOT NULL,
-    FOREIGN KEY (customer_ID) REFERENCES CUSTOMERS(customer_ID)
+    FOREIGN KEY (customer_id) REFERENCES CUSTOMERS(customer_id)
 );
 
 CREATE TABLE IF NOT EXISTS INTEREST_RATE (
