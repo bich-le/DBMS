@@ -182,3 +182,26 @@ BEGIN
 END$$
 
 DELIMITER ;
+
+--Mỗi 3 phút chạy 1 event.
+--Nếu một tài khoản có 3 bản ghi trở lên trong SUSPICION, và không có suspicion_status là 'Resolved' hoặc 'Failed_positive', thì cập nhật cus_account_status = 'temporarily locked'.
+DELIMITER $$
+
+CREATE EVENT IF NOT EXISTS lock_suspicious_accounts
+ON SCHEDULE EVERY 3 minute
+DO
+BEGIN
+    UPDATE CUSTOMER_ACCOUNT
+    SET cus_account_status = 'temporarily locked'
+    WHERE cus_account_id IN (
+        SELECT cus_account_id
+        FROM SUSPICION
+        WHERE suspicion_status NOT IN ('Resolved', 'Failed_positive')
+          AND suspicion_time >= NOW() - INTERVAL 7 DAY
+        GROUP BY cus_account_id
+        HAVING COUNT(*) >= 3
+    );
+END$$
+
+DELIMITER ;
+
