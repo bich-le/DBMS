@@ -203,3 +203,13 @@ BEGIN
 END;
 //
 DELIMITER ;
+-- update saving account interest:
+CREATE EVENT update_saving_account_interest
+ON SCHEDULE EVERY 1 MONTH
+DO
+BEGIN
+    UPDATE SAVING_ACCOUNT sa
+    JOIN INTEREST_RATE ir ON sa.interest_rate_id = ir.interest_rate_id
+    SET sa.saving_acc_balance = sa.saving_acc_balance + (sa.saving_acc_balance * ir.interest_rate_val)
+    WHERE ir.status = 'Active';
+END;
