@@ -38,15 +38,31 @@ VALUES
 (5, 'edward', 'pass123', 'Inactive');
 
 # Báo cáo
-INSERT INTO REPORT (report_name, report_description, procedure_name) VALUES 
-('System-wide Transaction History', 'All transactions in the system', 'sp_system_transactions'),
-('Branch Transactions', 'Transactions grouped by branch', 'sp_branch_transactions'),
-('Employee Transactions', 'Transactions handled by employee', 'sp_employee_transactions'),
-('Suspicious Transactions', 'Suspicious or flagged transactions', 'sp_suspicious_transactions'),
-('System Activity Log', 'All activities within the system', 'sp_system_activity_log'),
-('Interest Rate Changes', 'History of interest rate changes', 'sp_interest_rate_log'),
-('Customer Reports by Branch', 'List of customers grouped by branch', 'sp_customers_by_branch'),
-('Account Summary', 'Summary of accounts and balances', 'sp_account_summary');
+--  Thêm dữ liệu vào bảng REPORT
+
+INSERT INTO REPORT (report_name, report_description)
+VALUES ('Lịch sử giao dịch hệ thống', 'Báo cáo lịch sử giao dịch của toàn bộ hệ thống trong một khoảng thời gian.');
+
+INSERT INTO REPORT (report_name, report_description)
+VALUES ('Lịch sử giao dịch chi nhánh', 'Báo cáo lịch sử giao dịch của một chi nhánh cụ thể.');
+
+INSERT INTO REPORT (report_name, report_description)
+VALUES ('Lịch sử giao dịch của nhân viên', 'Báo cáo lịch sử giao dịch được thực hiện bởi một nhân viên.');
+
+INSERT INTO REPORT (report_name, report_description)
+VALUES ('Báo cáo suspicion', 'Báo cáo các giao dịch bị nghi ngờ.');
+
+INSERT INTO REPORT (report_name, report_description)
+VALUES ('Lịch sử system activity', 'Báo cáo lịch sử hoạt động của hệ thống.');
+
+INSERT INTO REPORT (report_name, report_description)
+VALUES ('Lịch sử thay đổi lãi suất', 'Báo cáo lịch sử thay đổi của lãi suất.');
+
+INSERT INTO REPORT (report_name, report_description)
+VALUES ('Báo cáo khách hàng theo chi nhánh', 'Báo cáo thông tin tổng hợp về khách hàng theo chi nhánh.');
+
+INSERT INTO REPORT (report_name, report_description)
+VALUES ('Báo cáo tổng hợp tài khoản', 'Báo cáo thông tin tổng hợp về tài khoản (số lượng, tổng số dư) theo chi nhánh và loại tài khoản.');
 
 -- Director ('D') được xem toàn bộ
 INSERT INTO REPORT_ACCESS VALUES 
