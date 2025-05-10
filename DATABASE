@@ -90,10 +90,19 @@ CREATE TABLE TRANSACTIONS (
 	direction ENUM('Debit', 'Credit') NOT NULL,
     related_customer_account_id VARCHAR(17) ,
     transaction_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-    transaction_status ENUM('Successful', 'Failed') NOT NULL,
 	FOREIGN KEY (customer_account_id) REFERENCES CUSTOMER_ACCOUNT(customer_account_id) ON DELETE SET NULL,
    	FOREIGN KEY (related_customer_account_id) REFERENCES CUSTOMER_ACCOUNT(customer_account_id) ON DELETE SET NULL,
 	FOREIGN KEY (transaction_type_id) REFERENCES TRANSACTION_TYPE(transaction_type_id) ON DELETE SET NULL
+);
+
+ CREATE TABLE FAILED_TRANSACTION (
+    transaction_id VARCHAR(18) PRIMARY KEY,
+    customer_account_id VARCHAR(17),
+    transaction_amount INT NOT NULL,
+    reason TEXT NOT NULL,
+    attempted_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+	FOREIGN KEY (transaction_id) REFERENCES TRANSACTIONS(transaction_id) ON DELETE CASCADE, 
+    FOREIGN KEY (customer_account_id) REFERENCES CUSTOMER_ACCOUNT(customer_account_id) ON DELETE CASCADE
 );
 
 
@@ -214,7 +223,7 @@ CREATE TABLE CUS_ACCOUNT_CHANGE_HISTORY (
 		FOREIGN KEY (customer_account_id) REFERENCES CUSTOMER_ACCOUNT(customer_account_id) ON DELETE CASCADE
 );
 CREATE TABLE FRAUD_PATTERN (
-    fraud_pattern_id INT PRIMARY KEY,
+    fraud_pattern_id INT AUTO_INCREMENT PRIMARY KEY,
     fraud_pattern_name VARCHAR(100) UNIQUE NOT NULL,
     description TEXT
 );
