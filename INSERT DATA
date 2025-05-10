@@ -63,3 +63,51 @@ INSERT INTO REPORT_ACCESS VALUES
 -- Auditor ('A') xem 1, 3, 4, 5, 6, 8
 INSERT INTO REPORT_ACCESS VALUES 
 (1, 'A'), (3, 'A'), (4, 'A'), (5, 'A'), (6, 'A'), (8, 'A');
+
+-- Insert fraud patterns
+INSERT INTO FRAUD_PATTERN (fraud_pattern_id, fraud_pattern_name, description)
+VALUES 
+('FP001', 'Transaction Amount Spike', 'A transaction exceeds three times the average amount of that account over the last 7 days.'),
+('FP002', 'High Frequency Transactions', 'An account makes more than 5 transactions within 1 minute.'),
+('FP004', 'Dormant Account Activity', 'An account that has not had transactions for more than 3 months suddenly has a large transaction. From 50,000,000');
+
+-- Insert Banking Transaction Types
+INSERT INTO TRANSACTION_TYPE (transaction_type_id, transaction_type_name, description)
+VALUES
+    ('POS', 'Point of Sale', 'Debit/credit card purchases at stores, online payments. Extremely frequent in retail banking.'),
+    ('DEP', 'Deposit', 'Includes salary credit, cash deposits, check deposits.'),
+    ('WDL', 'Withdrawal', 'ATM cash withdrawals or over-the-counter withdrawals.'),
+    ('TRF', 'Transfer', 'Transfers between personal accounts or to other people/banks.'),
+    ('PMT', 'Payment', 'Loan repayments, utility bill payments, subscriptions.'),
+    ('ACH', 'Automated Clearing House', 'Payroll, insurance, recurring payments (e.g., Netflix, insurance).'),
+    ('INT', 'Interest Credit', 'Monthly or quarterly interest accruals on savings accounts.'),
+    ('FEE', 'Fee Charge', 'Service charges, ATM fees, late fees, etc.'),
+    ('CHK', 'Check', 'Used more in business or older accounts (declining in use).'),
+    ('REF', 'Refund', 'E-commerce or billing refunds (increasing in usage).');
+
+-- Insert System Activity Types
+INSERT INTO SYSTEM_ACTIVITY_CATEGORIES (activity_category_name, description)
+VALUES
+    ('Interest rate table updated', 'System activity where the interest rate table is updated. Typically, this happens when there are changes in the interest rates for various account types.'),
+    ('New fraud pattern created', 'System activity indicating the creation of a new fraud detection pattern for monitoring suspicious activities in transactions.'),
+    ('New transaction type added', 'System activity when a new transaction type (e.g., Deposit, Withdrawal) is added to the system for processing.'),
+    ('New account type added', 'System activity triggered when a new account type (e.g., Saving, Current, Fixed Deposit) is introduced into the system.'),
+    ('Permission matrix changed', 'System activity when there are modifications in the permission matrix, impacting who can access or perform certain actions within the system.'),
+    ('Daily transfer limit changed', 'System activity when the daily transfer limit for accounts is modified, impacting transaction limits for customers.');
+
+-- Insert Interest Rates
+INSERT INTO INTEREST_RATE (interest_rate_val, account_type_id, min_balance, max_balance, term)
+VALUES
+    (0.100, 'C', 0, NULL, NULL),  -- Account Type: Check Account, Rate: 0.100%
+    (1.900, 'S', 100000, 1000000000, NULL),  -- Account Type: Saving Account, Rate: 1.900%
+    (4.800, 'F', 1000000, NULL, 1),  -- Account Type: Fixed Deposit Account, Rate: 4.800%, 1 month term
+    (5.200, 'F', 1000000, NULL, 6),  -- Account Type: Fixed Deposit Account, Rate: 5.200%, 6 month term
+    (5.500, 'F', 1000000, NULL, 12);  -- Account Type: Fixed Deposit Account, Rate: 5.500%, 12 month term
+
+INSERT INTO DEVICE_TYPE (device_type_name, is_portable, requires_approval, description)
+VALUES
+    ('Desktop', FALSE, NULL, 'Standard device for most office-based employees (e.g., tellers, customer service, loan officers).'),
+    ('Laptop', TRUE, NULL, 'For mobile employees, managers, auditors, or IT staff who may need to work remotely or across branches.'),
+    ('Thin Client', FALSE, NULL, 'Used in highly secure environments (e.g., call centers or branch service counters).'),
+    ('Mobile Device', TRUE, TRUE, 'Typically for notifications, approvals (e.g., 2FA or digital signatures by senior staff).'),
+    ('Admin Console', FALSE, TRUE, 'Used by system admins or database administrators to manage internal systems.');
