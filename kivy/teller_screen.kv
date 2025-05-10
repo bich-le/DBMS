@@ -1,8 +1,8 @@
-<Teller>:
-    on_enter: self.ids.screen_manager.current = "customers" 
+<TellerScreen>:
+    on_enter: self.ids.screen_manager.current = "customers"
     MDNavigationLayout:
         MDScreenManager:
-            id: screen_manager
+            id:screen_manager
 
             MDScreen:
                 name: "customers"
@@ -16,14 +16,14 @@
                         halign: "center"
 
             MDScreen:
-                name: "employees"
+                name: "customer_accounts"
                 MDBoxLayout:
                     orientation: "vertical"
                     MDTopAppBar:
-                        title: "Employee Management"
+                        title: "Customer Accounts"
                         left_action_items: [["menu", lambda x: nav_drawer.set_state("open")]]
                     MDLabel:
-                        text: "Employee management content"
+                        text: "Customer accounts content"
                         halign: "center"
 
             MDScreen:
@@ -31,36 +31,25 @@
                 MDBoxLayout:
                     orientation: "vertical"
                     MDTopAppBar:
-                        title: "Transaction History"
+                        title: "Transactions"
                         left_action_items: [["menu", lambda x: nav_drawer.set_state("open")]]
                     MDLabel:
-                        text: "Transaction history content"
+                        text: "Transactions content"
                         halign: "center"
 
             MDScreen:
-                name: "history"
+                name: "branch_history"
                 MDBoxLayout:
                     orientation: "vertical"
                     MDTopAppBar:
-                        title: "History"
+                        title: "Branch History"
                         left_action_items: [["menu", lambda x: nav_drawer.set_state("open")]]
                     MDLabel:
-                        text: "History content"
+                        text: "Branch history content"
                         halign: "center"
 
             MDScreen:
-                name: "suspicion"
-                MDBoxLayout:
-                    orientation: "vertical"
-                    MDTopAppBar:
-                        title: "Suspicious Employees"
-                        left_action_items: [["menu", lambda x: nav_drawer.set_state("open")]]
-                    MDLabel:
-                        text: "Suspicious employees content"
-                        halign: "center"
-
-            MDScreen:
-                name: "report"
+                name: "reports"
                 MDBoxLayout:
                     orientation: "vertical"
                     MDTopAppBar:
@@ -71,14 +60,25 @@
                         halign: "center"
 
             MDScreen:
-                name: "system"
+                name: "suspicion"
                 MDBoxLayout:
                     orientation: "vertical"
                     MDTopAppBar:
-                        title: "System Settings"
+                        title: "Suspicion"
                         left_action_items: [["menu", lambda x: nav_drawer.set_state("open")]]
                     MDLabel:
-                        text: "System settings content"
+                        text: "Suspicion content"
+                        halign: "center"
+
+            MDScreen:
+                name: "system_history"
+                MDBoxLayout:
+                    orientation: "vertical"
+                    MDTopAppBar:
+                        title: "System History"
+                        left_action_items: [["menu", lambda x: nav_drawer.set_state("open")]]
+                    MDLabel:
+                        text: "System history content"
                         halign: "center"
 
         MDNavigationDrawer:
@@ -87,7 +87,7 @@
             MDNavigationDrawerMenu:
 
                 MDNavigationDrawerHeader:
-                    title: "Director Panel"
+                    title: "Teller Panel"
                     title_color: "#4a4939"
                     spacing: "4dp"
                     padding: "16dp", "8dp", 0, "8dp"
@@ -96,51 +96,51 @@
 
                 DrawerItem:
                     icon: "account-group"
-                    text: "customers"
+                    text: "Customers"
                     on_release:
                         screen_manager.current = "customers"
                         nav_drawer.set_state("close")
 
                 DrawerItem:
-                    icon: "account"
-                    text: "employees"
+                    icon: "account-cash"
+                    text: "Customer Accounts"
                     on_release:
-                        screen_manager.current = "employees"
+                        screen_manager.current = "customer_accounts"
                         nav_drawer.set_state("close")
 
                 DrawerItem:
                     icon: "history"
-                    text: "transactions"
+                    text: "Transactions"
                     on_release:
                         screen_manager.current = "transactions"
                         nav_drawer.set_state("close")
 
                 DrawerItem:
-                    icon: "clock"
-                    text: "history"
+                    icon: "domain"
+                    text: "Branch History"
                     on_release:
-                        screen_manager.current = "history"
+                        screen_manager.current = "branch_history"
+                        nav_drawer.set_state("close")
+
+                DrawerItem:
+                    icon: "file-chart"
+                    text: "Reports"
+                    on_release:
+                        screen_manager.current = "reports"
                         nav_drawer.set_state("close")
 
                 DrawerItem:
                     icon: "account-alert"
-                    text: "suspicion"
+                    text: "Suspicion"
                     on_release:
                         screen_manager.current = "suspicion"
                         nav_drawer.set_state("close")
 
                 DrawerItem:
-                    icon: "file-chart"
-                    text: "report"
-                    on_release:
-                        screen_manager.current = "report"
-                        nav_drawer.set_state("close")
-
-                DrawerItem:
                     icon: "cog"
-                    text: "system"
+                    text: "System History"
                     on_release:
-                        screen_manager.current = "system"
+                        screen_manager.current = "system_history"
                         nav_drawer.set_state("close")
 
                 MDNavigationDrawerDivider:
@@ -148,7 +148,7 @@
 
                 DrawerItem:
                     icon: "arrow-left"
-                    text: "log out"
+                    text: "Log Out"
                     on_release:
                         root.manager.transition.direction = "right"
                         root.manager.current = "main"

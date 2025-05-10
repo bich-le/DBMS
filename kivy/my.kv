@@ -34,26 +34,6 @@
             pos_hint: {"center_x": 0.5}
             on_release: root.login()
 
-<TellerScreen>:
-    MDBoxLayout:
-        orientation: "vertical"
-        padding: "20dp"
-        spacing: "20dp"
-
-        MDLabel:
-            text: "Welcome Teller"
-            halign: "center"
-            font_style: "H6"
-
-        MDRaisedButton:
-            text: "Go Back"
-            pos_hint: {"center_x": 0.5}
-            on_release:
-                root.manager.current = "main"
-                root.manager.transition.direction = "right"
-                app.root.get_screen('main').ids.username.text = ''
-                app.root.get_screen('main').ids.password.text = ''
-
 <ManagerScreen>:
     MDBoxLayout:
         orientation: "vertical"
