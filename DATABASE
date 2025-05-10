@@ -1,6 +1,7 @@
-drop database main;
+drop database main; 
 create database main;
 use main;
+
 
 
 
@@ -30,7 +31,8 @@ CREATE TABLE IF NOT EXISTS CUSTOMER_ACCOUNT (
 );
 CREATE TABLE IF NOT EXISTS INTEREST_RATE (
     interest_rate_id TINYINT auto_increment PRIMARY KEY,
-    interest_rate_val DECIMAL(5,3) NOT NULL,
+    interest_rate_val DECIMAL(5,3) NOT NULL 
+		CHECK (interest_rate_val >0),
     account_type_id int,
     min_balance INT(10),
     max_balance INT(10),
@@ -40,25 +42,29 @@ CREATE TABLE IF NOT EXISTS INTEREST_RATE (
 CREATE TABLE SAVING_ACCOUNT(
     customer_account_id VARCHAR(17) primary key,
     interest_rate_id TINYint,
-    saving_acc_balance int,
+    saving_acc_balance bigint
+		CHECK (saving_acc_balance>0),
     FOREIGN KEY (customer_account_id) REFERENCES CUSTOMER_ACCOUNT(customer_account_id),
     FOREIGN KEY (interest_rate_id) REFERENCES INTEREST_RATE(interest_rate_id)
 );
 CREATE TABLE CURRENT_ACCOUNT(
     customer_account_id VARCHAR(17) primary key,
-    current_acc_balance int,
+    current_acc_balance bigint
+		CHECK (current_acc_balance>0),
     interest_rate_id TINYint,
-    daily_transfer_limit int(9),
+    daily_transfer_limit int
+		CHECK (daily_transfer_limit > 0 AND daily_transfer_limit <= 100000000),
     FOREIGN KEY (customer_account_id) REFERENCES CUSTOMER_ACCOUNT(customer_account_id),
     FOREIGN KEY (interest_rate_id) REFERENCES INTEREST_RATE(interest_rate_id)
 );
+
 CREATE TABLE FIXED_DEPOSIT_ACCOUNT(
     customer_account_id VARCHAR(17) PRIMARY KEY,
     interest_rate_id tinyint,
-    deposit_amount INT NOT NULL,
+    deposit_amount bigint NOT NULL
+		CHECK (deposit_amount>1000),
     deposit_date DATE NOT NULL,
     maturity_date DATE NOT NULL,
-    interest_interest_rate_id INT,
     FOREIGN KEY (customer_account_id) REFERENCES CUSTOMER_ACCOUNT(customer_account_id) ON DELETE CASCADE,
     FOREIGN KEY (interest_rate_id) REFERENCES INTEREST_RATE(interest_rate_id) ON DELETE SET NULL
 );
@@ -79,7 +85,8 @@ CREATE TABLE TRANSACTIONS (
     transaction_id VARCHAR(18) PRIMARY KEY, --  DTNB[transactin_type_id][2-digit year][7-digit index][day]
     transaction_type_id varchar(3),
     customer_account_id VARCHAR(17) ,
-    amount INT(9) NOT NULL,
+    transaction_amount INT NOT NULL
+		CHECK (transaction_amount >= 1000),
 	direction ENUM('Debit', 'Credit') NOT NULL,
     related_customer_account_id VARCHAR(17) ,
     transaction_time DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -102,7 +109,7 @@ CREATE TABLE IF NOT EXISTS BRANCH (
     branch_address VARCHAR(255)
 );
 CREATE TABLE IF NOT EXISTS EMPLOYEE_POSITIONS( -- TẠO BẢNG EMPLOYEE_POSITIONS
-	emp_position_id VARCHAR(2) KEY, -- 'T', 'M', etc
+	emp_position_id VARCHAR(2) primary KEY, -- 'T', 'M', etc
     emp_position_name VARCHAR(15),
     description TEXT
 );
@@ -221,9 +228,13 @@ CREATE TABLE SUSPICION (
 		FOREIGN KEY (transaction_id) REFERENCES TRANSACTIONs(transaction_id) ON DELETE CASCADE,
 		FOREIGN KEY (fraud_pattern_id) REFERENCES FRAUD_PATTERN(fraud_pattern_id) ON DELETE CASCADE
 );
-
-
-
+-- --------------------------------------------------------------------------------
+CREATE INDEX idx_customer_id ON CUSTOMER_ACCOUNT(customer_id);
+CREATE INDEX idx_transaction_time ON TRANSACTIONS(transaction_time);
+CREATE INDEX idx_transaction_type_id ON TRANSACTIONS(transaction_type_id);
+CREATE INDEX idx_branch_id ON EMPLOYEES(branch_id);
+CREATE INDEX idx_emp_position_id ON EMPLOYEES(emp_position_id);
+-- --------------------------------------------------------------------------------
 
 					-- REPORT --------------------------------------------
                     
