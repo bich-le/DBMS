@@ -29,6 +29,8 @@ from kivy.lang import Builder
 
 from director_screen import DirectorScreen
 from teller_screen import TellerScreen
+from manager_screen import ManagerScreen
+from auditor_screen import AuditorScreen
 import mysql.connector
 
 #Builder.load_file("director_screen.kv")
@@ -85,6 +87,8 @@ class MyApp(MDApp):
         self.theme_cls.primary_palette = "DeepPurple"
         Builder.load_file("director_screen.kv")
         Builder.load_file("teller_screen.kv")
+        Builder.load_file("manager_screen.kv")
+        Builder.load_file("auditor_screen.kv")
         sm = MDScreenManager()
         sm.add_widget(MainScreen(name="main"))
         sm.add_widget(DirectorScreen(name="director"))
