@@ -1,4 +1,4 @@
-<DirectorScreen>:
+<Teller>:
     on_enter: self.ids.screen_manager.current = "customers" 
     MDNavigationLayout:
         MDScreenManager:
@@ -96,42 +96,49 @@
 
                 DrawerItem:
                     icon: "account-group"
-                    text: "Customers"
+                    text: "customers"
                     on_release:
                         screen_manager.current = "customers"
                         nav_drawer.set_state("close")
 
                 DrawerItem:
                     icon: "account"
-                    text: "Employees"
+                    text: "employees"
                     on_release:
                         screen_manager.current = "employees"
                         nav_drawer.set_state("close")
 
                 DrawerItem:
                     icon: "history"
-                    text: "Transactions"
+                    text: "transactions"
                     on_release:
                         screen_manager.current = "transactions"
                         nav_drawer.set_state("close")
 
                 DrawerItem:
+                    icon: "clock"
+                    text: "history"
+                    on_release:
+                        screen_manager.current = "history"
+                        nav_drawer.set_state("close")
+
+                DrawerItem:
                     icon: "account-alert"
-                    text: "Suspicion"
+                    text: "suspicion"
                     on_release:
                         screen_manager.current = "suspicion"
                         nav_drawer.set_state("close")
 
                 DrawerItem:
                     icon: "file-chart"
-                    text: "Report"
+                    text: "report"
                     on_release:
                         screen_manager.current = "report"
                         nav_drawer.set_state("close")
 
                 DrawerItem:
                     icon: "cog"
-                    text: "System"
+                    text: "system"
                     on_release:
                         screen_manager.current = "system"
                         nav_drawer.set_state("close")
@@ -141,7 +148,7 @@
 
                 DrawerItem:
                     icon: "arrow-left"
-                    text: "Log Out"
+                    text: "log out"
                     on_release:
                         root.manager.transition.direction = "right"
                         root.manager.current = "main"
