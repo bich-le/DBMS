@@ -5,23 +5,19 @@
 -- ensure that Customer account must belong to at least one account type
 DELIMITER //
 CREATE TRIGGER check_account_type_after_insert
-AFTER INSERT ON CUSTOMER_ACCOUNT
+AFTER INSERT ON CUSTOMER_ACCOUNTS
 FOR EACH ROW
 BEGIN
     DECLARE cnt INT;
 
+    -- Check if the account type exists in the customer account types table
     SELECT COUNT(*) INTO cnt
-    FROM (
-        SELECT customer_account_id FROM SAVING_ACCOUNT WHERE customer_account_id = NEW.customer_account_id
-        UNION
-        SELECT customer_account_id FROM CURRENT_ACCOUNT WHERE customer_account_id = NEW.customer_account_id
-        UNION
-        SELECT customer_account_id FROM FIXED_DEPOSIT_ACCOUNT WHERE customer_account_id = NEW.customer_account_id
-    ) AS temp;
+    FROM CUSTOMER_ACCOUNT_TYPES
+    WHERE cus_account_type_id = NEW.cus_account_type_id;
 
+    -- If no such account type exists, signal an error
     IF cnt = 0 THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Customer account must belong to at least one account type (saving/current/fixed deposit)';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Invalid account type for this customer account';
     END IF;
 END;
 //
