@@ -1,0 +1,108 @@
+-- UPDATE TABLES --------------------------------------------------------------------------------------------------
+
+
+-- Record a Transaction
+              DELIMITER //
+              CREATE PROCEDURE RecordTransaction(
+                  IN p_transaction_id VARCHAR(18),
+                  IN p_transaction_type_id VARCHAR(3),
+                  IN p_account_id VARCHAR(17),
+                  IN p_amount INT,
+                  IN p_direction ENUM('Debit', 'Credit'),
+                  IN p_related_account_id VARCHAR(17),
+                  IN p_status ENUM('Successful', 'Failed')
+              )
+              BEGIN
+                  INSERT INTO TRANSACTIONS (
+                      transaction_id, transaction_type_id, customer_account_id,
+                      amount, direction, related_customer_account_id,
+                      transaction_status
+                  )
+                  VALUES (
+                      p_transaction_id, p_transaction_type_id, p_account_id,
+                      p_amount, p_direction, p_related_account_id,
+                      p_status
+                  );
+              END //
+              DELIMITER ;
+
+-- Log System Activity 
+              DELIMITER //
+              CREATE PROCEDURE LogSystemActivity(
+                  IN p_category_id INT,
+                  IN p_time DATETIME,
+                  IN p_emp_id VARCHAR(11),
+                  IN p_device_id INT,
+                  IN p_objective_id VARCHAR(20),
+                  IN p_old_value VARCHAR(15),
+                  IN p_new_value VARCHAR(15),
+                  IN p_description TEXT,
+                  IN p_status ENUM('Successful', 'Failed')
+              )
+              BEGIN
+                  INSERT INTO SYSTEM_ACTIVITIES_HISTORY (
+                      activity_category_id, activity_time, emp_id,
+                      device_id, objective_id, old_value,
+                      new_value, description, status
+                  )
+                  VALUES (
+                      p_category_id, p_time, p_emp_id,
+                      p_device_id, p_objective_id, p_old_value,
+                      p_new_value, p_description, p_status
+                  );
+              END //
+              DELIMITER ;
+
+-- Update Interest_rate Table:
+              DELIMITER //
+              CREATE PROCEDURE UpdateInterestRate (
+                  IN p_rate_id TINYINT,
+                  IN p_val DECIMAL(5,3),
+                  IN p_account_type_id INT,
+                  IN p_min_balance INT,
+                  IN p_max_balance INT,
+                  IN p_term INT,
+                  IN p_status ENUM('Active', 'Inactive')
+              )
+              BEGIN
+                  IF p_min_balance < 0 OR p_max_balance < p_min_balance THEN
+                      SIGNAL SQLSTATE '45000'
+                      SET MESSAGE_TEXT = 'Invalid balance range';
+                  END IF;
+              
+                  UPDATE INTEREST_RATE
+                  SET interest_rate_val = p_val,
+                      account_type_id = p_account_type_id,
+                      min_balance = p_min_balance,
+                      max_balance = p_max_balance,
+                      term = p_term,
+                      status = p_status
+                  WHERE interest_rate_id = p_rate_id;
+              END //
+              DELIMITER ;
+
+-- Update System_activity_category table:
+              DELIMITER //
+              CREATE PROCEDURE UpdateSystemActivityCategory (
+                  IN p_activity_category_id INT,
+                  IN p_activity_category_name VARCHAR(30),
+                  IN p_description TEXT
+              )
+              BEGIN
+                  -- Check if the ID exists
+                  IF EXISTS (
+                      SELECT 1 FROM SYSTEM_ACTIVITY_CATEGORIES WHERE activity_category_id = p_activity_category_id
+                  ) THEN
+                      -- Attempt to update
+                      UPDATE SYSTEM_ACTIVITY_CATEGORIES
+                      SET 
+                          activity_category_name = p_activity_category_name,
+                          description = p_description
+                      WHERE activity_category_id = p_activity_category_id;
+                  ELSE
+                      SIGNAL SQLSTATE '45000'
+                      SET MESSAGE_TEXT = 'Activity category ID does not exist.';
+                  END IF;
+              END //
+              DELIMITER ;
+
