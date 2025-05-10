@@ -21,8 +21,9 @@ CREATE TABLE IF NOT EXISTS CUSTOMERS (
     cus_sex ENUM('Male', 'Female'),
     cus_identification_id VARCHAR(20) UNIQUE
 );
+
 CREATE TABLE IF NOT EXISTS CUSTOMER_ACCOUNT_TYPES (
-    cus_account_type_id TINYINT auto_increment PRIMARY KEY,
+    cus_account_type_id VARCHAR(2) PRIMARY KEY,
     cus_account_type_name VARCHAR(20) NOT NULL UNIQUE
 );
 CREATE TABLE IF NOT EXISTS CUSTOMER_ACCOUNTS (
@@ -30,27 +31,28 @@ CREATE TABLE IF NOT EXISTS CUSTOMER_ACCOUNTS (
     cus_id VARCHAR(17),
     cus_account_status ENUM('Active', 'Temporary Locked', 'Locked') DEFAULT 'Active', 
     opening_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    cus_account_type_id TINYINT ,
-    FOREIGN KEY (customer_id) REFERENCES CUSTOMERS(customer_id) on delete set null
+    cus_account_type_id VARCHAR(2) ,
+    FOREIGN KEY (cus_id) REFERENCES CUSTOMERS(cus_id) on delete set null,
+    FOREIGN KEY (cus_account_type_id) REFERENCES CUSTOMER_ACCOUNT_TYPES(cus_account_type_id) on delete set null
 );
 CREATE TABLE IF NOT EXISTS INTEREST_RATES (
     interest_rate_id TINYINT auto_increment PRIMARY KEY,
     interest_rate_val DECIMAL(5,3) NOT NULL 
 		CHECK (interest_rate_val >0),
-    cus_account_type_id tinyint not null,
+    cus_account_type_id VARCHAR(2) not null,
     min_balance INT(10),
     max_balance INT(10),
     term INT(2),
     status ENUM('Active', 'Inactive') DEFAULT "Active",
-        FOREIGN KEY (cus_account_type_id) REFERENCES CUSTOMER_ACCOUNTS(cus_account_type_id) on delete set null
+        FOREIGN KEY (cus_account_type_id) REFERENCES CUSTOMER_ACCOUNT_TYPES(cus_account_type_id) on delete cascade
 );
 CREATE TABLE SAVING_ACCOUNTS(
     cus_account_id VARCHAR(17) primary key,
     interest_rate_id TINYint,
     saving_acc_balance bigint
 		CHECK (saving_acc_balance>0),
-    FOREIGN KEY (cus_account_id) REFERENCES CUSTOMER_ACCOUNT(cus_account_id),
-    FOREIGN KEY (interest_rate_id) REFERENCES INTEREST_RATE(interest_rate_id)
+    FOREIGN KEY (cus_account_id) REFERENCES CUSTOMER_ACCOUNTS(cus_account_id),
+    FOREIGN KEY (interest_rate_id) REFERENCES INTEREST_RATES(interest_rate_id)
 );
 
 CREATE TABLE CHECK_ACCOUNTS(
@@ -60,8 +62,8 @@ CREATE TABLE CHECK_ACCOUNTS(
     interest_rate_id TINYint,
     daily_transfer_limit int
 		CHECK (daily_transfer_limit > 0 AND daily_transfer_limit <= 100000000),
-    FOREIGN KEY (cus_account_id) REFERENCES CUSTOMER_ACCOUNT(cus_account_id),
-    FOREIGN KEY (interest_rate_id) REFERENCES INTEREST_RATE(interest_rate_id)
+    FOREIGN KEY (cus_account_id) REFERENCES CUSTOMER_ACCOUNTS(cus_account_id),
+    FOREIGN KEY (interest_rate_id) REFERENCES INTEREST_RATES(interest_rate_id)
 );
 CREATE TABLE FIXED_DEPOSIT_ACCOUNTS(
     cus_account_id VARCHAR(17) PRIMARY KEY,
@@ -70,8 +72,8 @@ CREATE TABLE FIXED_DEPOSIT_ACCOUNTS(
 		CHECK (deposit_amount>1000),
     deposit_date DATE NOT NULL,
     maturity_date DATE NOT NULL,
-    FOREIGN KEY (cus_account_id) REFERENCES CUSTOMER_ACCOUNT(cus_account_id) ON DELETE CASCADE,
-    FOREIGN KEY (interest_rate_id) REFERENCES INTEREST_RATE(interest_rate_id) ON DELETE SET NULL
+    FOREIGN KEY (cus_account_id) REFERENCES CUSTOMER_ACCOUNTS(cus_account_id) ON DELETE CASCADE,
+    FOREIGN KEY (interest_rate_id) REFERENCES INTEREST_RATES(interest_rate_id) ON DELETE SET NULL
 );
 
 
@@ -91,9 +93,9 @@ CREATE TABLE TRANSACTIONS (
 	direction ENUM('Debit', 'Credit') NOT NULL,
     related_cus_account_id VARCHAR(17) ,
     transaction_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-	FOREIGN KEY (cus_account_id) REFERENCES CUSTOMER_ACCOUNT(cus_account_id) ON DELETE SET NULL,
-   	FOREIGN KEY (related_cus_account_id) REFERENCES CUSTOMER_ACCOUNT(cus_account_id) ON DELETE SET NULL,
-	FOREIGN KEY (transaction_type_id) REFERENCES TRANSACTION_TYPE(transaction_type_id) ON DELETE SET NULL
+	FOREIGN KEY (cus_account_id) REFERENCES CUSTOMER_ACCOUNTS(cus_account_id) ON DELETE SET NULL,
+   	FOREIGN KEY (related_cus_account_id) REFERENCES CUSTOMER_ACCOUNTS(cus_account_id) ON DELETE SET NULL,
+	FOREIGN KEY (transaction_type_id) REFERENCES TRANSACTION_TYPES(transaction_type_id) ON DELETE SET NULL
 );
  CREATE TABLE FAILED_TRANSACTIONS (
     transaction_id VARCHAR(18) PRIMARY KEY,
@@ -102,7 +104,7 @@ CREATE TABLE TRANSACTIONS (
     reason TEXT NOT NULL,
     attempted_time DATETIME DEFAULT CURRENT_TIMESTAMP,
 	FOREIGN KEY (transaction_id) REFERENCES TRANSACTIONS(transaction_id) ON DELETE CASCADE, 
-    FOREIGN KEY (cus_account_id) REFERENCES CUSTOMER_ACCOUNT(cus_account_id) ON DELETE CASCADE
+    FOREIGN KEY (cus_account_id) REFERENCES CUSTOMER_ACCOUNTS(cus_account_id) ON DELETE CASCADE
 );
 
 
@@ -131,17 +133,17 @@ CREATE TABLE IF NOT EXISTS EMPLOYEES (
     emp_salary INT(9) NOT NULL,
     branch_id VARCHAR(4),
     emp_position_id VARCHAR(2),
-    FOREIGN KEY (branch_id) REFERENCES BRANCH(branch_id) ON DELETE CASCADE,
+    FOREIGN KEY (branch_id) REFERENCES BRANCHES(branch_id) ON DELETE CASCADE,
     FOREIGN KEY (emp_position_id) REFERENCES EMPLOYEE_POSITIONS(emp_position_id) ON DELETE SET NULL
 );
 CREATE TABLE IF NOT EXISTS EMPLOYEE_CUSTOMERS (
     emp_id VARCHAR(11),
-    customer_id VARCHAR(17) NOT NULL,
+    cus_id VARCHAR(17) ,
     service VARCHAR(50) NOT NULL,
     assigned_date DATE NOT NULL,
-    PRIMARY KEY (emp_id, customer_id),
+    PRIMARY KEY (emp_id, cus_id),
     FOREIGN KEY (emp_id) REFERENCES EMPLOYEES(emp_id) ON DELETE cascade,
-    FOREIGN KEY (customer_id) REFERENCES CUSTOMERS(customer_id) ON DELETE CASCADE
+    FOREIGN KEY (cus_id) REFERENCES CUSTOMERS(cus_id) ON DELETE CASCADE
 );
 CREATE TABLE EMPLOYEE_ACCOUNTS (
     emp_id VARCHAR(11) PRIMARY KEY,                                      
@@ -168,7 +170,7 @@ CREATE TABLE DEVICES (
     is_approved BOOLEAN DEFAULT FALSE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     last_checked_at DATETIME,
-    CONSTRAINT fk_type_device FOREIGN KEY (device_type_id) REFERENCES device_type(device_type_id)
+    CONSTRAINT fk_type_device FOREIGN KEY (device_type_id) REFERENCES device_types(device_type_id)
 );
 
 
