@@ -10,22 +10,31 @@ from kivy.uix.widget import Widget
 from kivy.uix.floatlayout import FloatLayout
 from kivy.graphics import Rectangle
 from kivy.graphics import Color
-from kivy.lang import Builder
 from kivy.uix.popup import Popup
 
 from kivymd.app import MDApp
 from kivymd.uix.screen import MDScreen
-from kivymd.uix.button import MDRaisedButton
+from kivymd.uix.button import MDRaisedButton, MDRectangleFlatIconButton
 from kivymd.uix.textfield import MDTextField
 from kivymd.uix.label import MDLabel
 from kivymd.uix.screenmanager import MDScreenManager
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDRoundFlatButton
+from kivymd.uix.navigationdrawer import MDNavigationDrawer, MDNavigationDrawerMenu, MDNavigationDrawerItem
 
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDFlatButton
+from kivymd.uix.screen import MDScreen
+from kivy.lang import Builder
 
+from director_screen import DirectorScreen
 import mysql.connector
+
+#Builder.load_file("director_screen.kv")
+
+class DrawerItem(MDNavigationDrawerItem):
+    icon = StringProperty()
+    text = StringProperty()
 
 class MainScreen(MDScreen):
     dialog = None
@@ -69,17 +78,18 @@ class MainScreen(MDScreen):
 class TellerScreen(MDScreen): pass
 class ManagerScreen(MDScreen): pass
 class AuditorScreen(MDScreen): pass
-class DirectorScreen(MDScreen): pass
+#class DirectorScreen(MDScreen): pass
 
 class MyApp(MDApp):
     def build(self):
         self.theme_cls.primary_palette = "DeepPurple"
+        Builder.load_file("director_screen.kv")
         sm = MDScreenManager()
         sm.add_widget(MainScreen(name="main"))
+        sm.add_widget(DirectorScreen(name="director"))
         sm.add_widget(TellerScreen(name="teller"))
         sm.add_widget(ManagerScreen(name="manager"))
         sm.add_widget(AuditorScreen(name="auditor"))
-        sm.add_widget(DirectorScreen(name="director"))
         return sm
     
     def verify_login_and_get_position(self, username, password):
@@ -104,6 +114,8 @@ class MyApp(MDApp):
         except mysql.connector.Error as err:
             print("DB error:", err)
             return None
+      
 
 if __name__ == '__main__':
     MyApp().run()
+    

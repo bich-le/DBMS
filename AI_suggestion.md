@@ -89,3 +89,45 @@
 - [ ] Snackbars or dialogs for success/error feedback
 
 ---
+project_folder/
+├── main.py
+├── my.kv                      # chứa <MainScreen>
+├── director_screen.py
+├── director_screen.kv
+├── manager_screen.py
+├── manager_screen.kv
+├── teller_screen.py
+├── teller_screen.kv
+├── auditor_screen.py
+├── auditor_screen.kv
+
+# làm code login chạy nhanh hơn nhưng đang không dùng cursor
+import threading
+
+def login(self):
+    username = self.ids.username.text
+    password = self.ids.password.text
+
+    def do_login():
+        app = MDApp.get_running_app()
+        result = app.verify_login_and_get_position(username, password)
+        if result:
+            status = result['status']
+            position = result['emp_position']
+            if status == 'Active':
+                self.goto_position(position.lower())
+            else:
+                self.show_login_error_dialog(f"Account status: {status}")
+        else:
+            self.show_login_error_dialog("Wrong login information.")
+    
+    threading.Thread(target=do_login).start()
+
+def goto_position(self, screen_name):
+    from kivy.clock import Clock
+    Clock.schedule_once(lambda dt: self._goto(screen_name), 0)
+
+def _goto(self, screen_name):
+    app = MDApp.get_running_app()
+    app.root.transition.direction = "left"
+    app.root.current = screen_name
