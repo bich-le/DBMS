@@ -1,116 +1,149 @@
-use dbms;
-drop database PROJECT;
-CREATE database PROJECT;
-USE PROJECT;
+drop database main; 
+create database main;
+use main;
+
+
+
+
+
+
+					-- CUSTOMER SYSTEM -----------------------------------
+                    
+                    
 CREATE TABLE IF NOT EXISTS CUSTOMERS (
-    customer_id INT AUTO_INCREMENT PRIMARY KEY,
-    firstName VARCHAR(50),
-    lastName VARCHAR(50),
-    address VARCHAR(100),
-    phoneNumber VARCHAR(15),
-    gender VARCHAR(10),
-    identification_id VARCHAR(20)
+    customer_ID VARCHAR(18) PRIMARY KEY, -- DTNB[branch_id][2-digit year][[7-digit index]
+    cus_first_name VARCHAR(50),
+    cus_last_name VARCHAR(50),
+    cus_dob DATE, -- added
+    cus_email VARCHAR(50) UNIQUE, -- added 
+    cus_address VARCHAR(100) , 
+    cus_phone_num VARCHAR(15) UNIQUE, -- + [Mã quốc gia][Số còn lại] VD: +84 901238881
+    cus_sex ENUM('Male', 'Female'),
+    cus_identification_id VARCHAR(20) UNIQUE
 );
-
-CREATE TABLE IF NOT EXISTS BRANCH (
-    branch_id INT AUTO_INCREMENT PRIMARY KEY,
-    branch_name VARCHAR(100),
-    branch_location VARCHAR(255)
-);
-
-CREATE TABLE IF NOT EXISTS EMPLOYEES (
-    emp_id INT AUTO_INCREMENT PRIMARY KEY,
-    emp_fullname VARCHAR(100),
-    emp_gender ENUM('Male', 'Female', 'Other'),
-    emp_dob DATE,
-    emp_phone VARCHAR(15),
-    emp_email VARCHAR(100),
-    emp_address VARCHAR(255),
-    emp_hire_date DATE,
-    emp_salary DECIMAL(12, 2),
-    branch_id INT,
-    emp_position ENUM('Teller', 'Manager', 'Auditor', 'Director'),
-    FOREIGN KEY (branch_id) REFERENCES BRANCH(branch_id)
-);
-
-CREATE TABLE IF NOT EXISTS EMPLOYEE_CUSTOMER (
-    emp_id INT,
-    customer_id int,
-    role VARCHAR(50),
-    assigned_date DATE,
-    PRIMARY KEY (emp_id, customer_id),
-    FOREIGN KEY (emp_id) REFERENCES EMPLOYEES(emp_id),
-    FOREIGN KEY (customer_id) REFERENCES CUSTOMERS(customer_id)
-);
-
-CREATE TABLE CUSTOMER_ACCOUNT (
-    customer_account_id int auto_increment primary key,
-    customer_id int,
+CREATE TABLE IF NOT EXISTS CUSTOMER_ACCOUNT (
+    customer_account_id VARCHAR(17) primary key, -- DTNB[customer_account_type_id][2-digit year][7-digit index]
+    customer_id VARCHAR(17),
     account_status ENUM('Active', 'Temporary Locked', 'Locked') DEFAULT 'Active', 
     opening_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    account_type ENUM('Saving', 'Current', 'Fixed') NOT NULL,
-    FOREIGN KEY (customer_id) REFERENCES CUSTOMERS(customer_id)
+    account_type ENUM('Saving', 'Current', 'Fixed') ,
+    FOREIGN KEY (customer_id) REFERENCES CUSTOMERS(customer_id) on delete set null
 );
-
 CREATE TABLE IF NOT EXISTS INTEREST_RATE (
-    rate_id INT PRIMARY KEY,
-    rate_val DECIMAL(5,3) NOT NULL,
+    interest_rate_id TINYINT auto_increment PRIMARY KEY,
+    interest_rate_val DECIMAL(5,3) NOT NULL 
+		CHECK (interest_rate_val >0),
     account_type_id int,
     min_balance INT(10),
     max_balance INT(10),
+    term INT(2),
     status ENUM('Active', 'Inactive') DEFAULT "Active"
 );
-
 CREATE TABLE SAVING_ACCOUNT(
-    customer_account_id INT primary key,
-    rate_id int,
-    saving_acc_balance int,
+    customer_account_id VARCHAR(17) primary key,
+    interest_rate_id TINYint,
+    saving_acc_balance bigint
+		CHECK (saving_acc_balance>0),
     FOREIGN KEY (customer_account_id) REFERENCES CUSTOMER_ACCOUNT(customer_account_id),
-    FOREIGN KEY (rate_id) REFERENCES INTEREST_RATE(rate_id)
+    FOREIGN KEY (interest_rate_id) REFERENCES INTEREST_RATE(interest_rate_id)
 );
-
 CREATE TABLE CURRENT_ACCOUNT(
-    customer_account_id int primary key,
-    current_acc_balance int,
-    daily_transfer_limit decimal(10, 2),
-    FOREIGN KEY (customer_account_id) REFERENCES CUSTOMER_ACCOUNT(customer_account_id)
+    customer_account_id VARCHAR(17) primary key,
+    current_acc_balance bigint
+		CHECK (current_acc_balance>0),
+    interest_rate_id TINYint,
+    daily_transfer_limit int
+		CHECK (daily_transfer_limit > 0 AND daily_transfer_limit <= 100000000),
+    FOREIGN KEY (customer_account_id) REFERENCES CUSTOMER_ACCOUNT(customer_account_id),
+    FOREIGN KEY (interest_rate_id) REFERENCES INTEREST_RATE(interest_rate_id)
 );
 
 CREATE TABLE FIXED_DEPOSIT_ACCOUNT(
-    customer_account_id INT PRIMARY KEY,
-    deposit_amount DECIMAL(12, 2) NOT NULL,
+    customer_account_id VARCHAR(17) PRIMARY KEY,
+    interest_rate_id tinyint,
+    deposit_amount bigint NOT NULL
+		CHECK (deposit_amount>1000),
     deposit_date DATE NOT NULL,
     maturity_date DATE NOT NULL,
-    rate_id INT,
-    FOREIGN KEY (customer_account_id) REFERENCES CUSTOMER_ACCOUNT(customer_account_id),
-    FOREIGN KEY (rate_id) REFERENCES INTEREST_RATE(rate_id)
+    FOREIGN KEY (customer_account_id) REFERENCES CUSTOMER_ACCOUNT(customer_account_id) ON DELETE CASCADE,
+    FOREIGN KEY (interest_rate_id) REFERENCES INTEREST_RATE(interest_rate_id) ON DELETE SET NULL
 );
+
+
+
+
+
+					-- TRANSACTIONS SYSTEM --------------------------------------------
+                    
+                    
 CREATE TABLE TRANSACTION_TYPE(
-    transaction_type_id TINYINT AUTO INCREMENT,
+    transaction_type_id VARCHAR(3) PRIMARY KEY,
     transaction_type_name VARCHAR(20) NOT NULL,
     description TEXT
 );
-CREATE TABLE TRANSACTION (
-    transaction_id CHAR(36) auto_increment PRIMARY KEY,
-    customer_account_id INT(10) NOT NULL,
-    amount INT(9) NOT NULL,
-    transaction_type_id ,
-    direction ENUM('Debit', 'Credit') NOT NULL,
-    related_customer_account_id INT(10) ,
+CREATE TABLE TRANSACTIONS (
+    transaction_id VARCHAR(18) PRIMARY KEY, --  DTNB[transactin_type_id][2-digit year][7-digit index][day]
+    transaction_type_id varchar(3),
+    customer_account_id VARCHAR(17) ,
+    transaction_amount INT NOT NULL
+		CHECK (transaction_amount >= 1000),
+	direction ENUM('Debit', 'Credit') NOT NULL,
+    related_customer_account_id VARCHAR(17) ,
     transaction_time DATETIME DEFAULT CURRENT_TIMESTAMP,
     transaction_status ENUM('Successful', 'Failed') NOT NULL,
-	FOREIGN KEY (customer_account_id) REFERENCES CUSTOMER_ACCOUNT(customer_account_id) ON DELETE CASCADE,
+	FOREIGN KEY (customer_account_id) REFERENCES CUSTOMER_ACCOUNT(customer_account_id) ON DELETE SET NULL,
    	FOREIGN KEY (related_customer_account_id) REFERENCES CUSTOMER_ACCOUNT(customer_account_id) ON DELETE SET NULL,
-	FOREIGN KEY (transaction_type_id) REFERENCES TRANSACTION_TYPE_ID(transaction_type_id) ON DELETE SET NULL,
+	FOREIGN KEY (transaction_type_id) REFERENCES TRANSACTION_TYPE(transaction_type_id) ON DELETE SET NULL
 );
 
+
+
+
+
+					-- INTERNAL SYSTEM --------------------------------------------
+                    
+                    
+CREATE TABLE IF NOT EXISTS BRANCH (
+    branch_id VARCHAR(4) PRIMARY KEY, -- VD: HN, HCM
+    branch_name VARCHAR(100),
+    branch_address VARCHAR(255)
+);
+CREATE TABLE IF NOT EXISTS EMPLOYEE_POSITIONS( -- TẠO BẢNG EMPLOYEE_POSITIONS
+	emp_position_id VARCHAR(2) primary KEY, -- 'T', 'M', etc
+    emp_position_name VARCHAR(15),
+    description TEXT
+);
+CREATE TABLE IF NOT EXISTS EMPLOYEES (
+    emp_id VARCHAR(11) PRIMARY KEY, -- [branch_id][position_id][2-digit year][4-digit index]
+    emp_fullname VARCHAR(100) NOT NULL,
+    emp_sex ENUM('Male', 'Female') NOT NULL,
+    emp_dob DATE NOT NULL,
+    emp_phone_num VARCHAR(15) UNIQUE NOT NULL, -- + [Mã quốc gia][Số còn lại] VD: +84 901238881
+    emp_email VARCHAR(50) UNIQUE NOT NULL,
+    emp_address VARCHAR(255) NOT NULL,
+    emp_hire_date DATE NOT NULL,
+    emp_salary INT(9) NOT NULL,
+    branch_id VARCHAR(4),
+    emp_position_id VARCHAR(2),
+    FOREIGN KEY (branch_id) REFERENCES BRANCH(branch_id) ON DELETE CASCADE,
+    FOREIGN KEY (emp_position_id) REFERENCES EMPLOYEE_POSITIONS(emp_position_id) ON DELETE SET NULL
+);
+CREATE TABLE IF NOT EXISTS EMPLOYEE_CUSTOMER (
+    emp_id VARCHAR(11),
+    customer_id VARCHAR(17) NOT NULL,
+    service VARCHAR(50) NOT NULL,
+    assigned_date DATE NOT NULL,
+    PRIMARY KEY (emp_id, customer_id),
+    FOREIGN KEY (emp_id) REFERENCES EMPLOYEES(emp_id) ON DELETE cascade,
+    FOREIGN KEY (customer_id) REFERENCES CUSTOMERS(customer_id) ON DELETE CASCADE
+);
 CREATE TABLE EMPLOYEE_ACCOUNT (
-    emp_id INT PRIMARY KEY,                                      -- Foreign key to the employee table
-    username VARCHAR(100) NOT NULL UNIQUE,                 -- Username for the account (must be unique)
+    emp_id VARCHAR(11) PRIMARY KEY,                                      
+    username VARCHAR(100) NOT NULL UNIQUE,                 
     password_hash VARCHAR(255) NOT NULL,                   -- Hashed password (never store plaintext passwords)
-    status ENUM('Active', 'Inactive', 'Suspended') DEFAULT 'Active',  -- Account status
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,         -- Timestamp when the account was created
-    FOREIGN KEY (emp_id) REFERENCES EMPLOYEE(emp_id) ON DELETE CASCADE  -- Foreign key to EMPLOYEE table
+    status ENUM('Active', 'Inactive', 'Suspended') DEFAULT 'Active',  
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,         
+    FOREIGN KEY (emp_id) REFERENCES EMPLOYEEs(emp_id) ON DELETE CASCADE  
 );
 CREATE TABLE DEVICE_TYPE (
     device_type_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -119,7 +152,6 @@ CREATE TABLE DEVICE_TYPE (
     requires_approval BOOLEAN DEFAULT TRUE,     -- Có cần IT duyệt không
     description TEXT
 );
-
 CREATE TABLE DEVICE (
     device_id INT AUTO_INCREMENT PRIMARY KEY,
     device_type_id INT NOT NULL,                        
@@ -130,63 +162,62 @@ CREATE TABLE DEVICE (
     is_approved BOOLEAN DEFAULT FALSE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     last_checked_at DATETIME,
-
-    CONSTRAINT fk_employee_device FOREIGN KEY (employee_account_id) REFERENCES employee_account(employee_account_id),
-    CONSTRAINT fk_type_device FOREIGN KEY (type_id) REFERENCES device_type(type_id)
+    CONSTRAINT fk_type_device FOREIGN KEY (device_type_id) REFERENCES device_type(device_type_id)
 );
 
+
+
+
+
+							-- SYSTEM MANAGEMENT --------------------------------------------
+                            
+                            
 CREATE TABLE SYSTEM_ACTIVITY_CATEGORIES (
-    activity_category_id INT AUTO_INCREMENT PRIMARY KEY,           -- Unique identifier for each activity category
-    activity_category_name VARCHAR(100) NOT NULL UNIQUE,           -- Name of the activity category (e.g., "Login", "Interest Change")
-    description TEXT                                    -- Description of the category (optional)
+    activity_category_id INT AUTO_INCREMENT PRIMARY KEY,      
+    activity_category_name VARCHAR(30) unique,
+    description TEXT                              
 );
-
 CREATE TABLE SYSTEM_ACTIVITIES_HISTORY (
     activity_id INT AUTO_INCREMENT PRIMARY KEY,
     activity_category_id INT NOT NULL,
     activity_time DATETIME NOT NULL,
-    employee_account_id INT ,
+    emp_id VARCHAR(11) ,
     device_id INT ,
     objective_id VARCHAR(20),
     old_value VARCHAR(15),
     new_value VARCHAR(15),
     description TEXT,
     status ENUM('Successful', 'Failed') NOT NULL,
-    FOREIGN KEY (activity_category_id) REFERENCES SYSTEM_ACTIVITY_CATEGORIES(activity_category_id) ON DELETE CASCADE,
-    FOREIGN KEY (employee_account_id) REFERENCES EMPLOYEE_ACCOUNT(employee_account_id) ON DELETE SET NULL,
-    FOREIGN KEY (device_id) REFERENCES DEVICE(device_id) ON DELETE SET NULL
+		FOREIGN KEY (activity_category_id) REFERENCES SYSTEM_ACTIVITY_CATEGORIES(activity_category_id) ON DELETE CASCADE,
+		FOREIGN KEY (emp_id) REFERENCES EMPLOYEES(emp_id) ON DELETE SET NULL,
+		FOREIGN KEY (device_id) REFERENCES DEVICE(device_id) ON DELETE SET NULL
 );
-
-
 CREATE TABLE INTERNAL_LOGIN_HISTORY (
-    employee_account_id INT,
+    emp_id VARCHAR(11),
     login_time DATETIME NOT NULL,
     logout_time DATETIME,
     ip_address VARCHAR(45),
     device_id INT,
-    PRIMARY KEY (employee_account_id, device_id, login_time),
+    PRIMARY KEY (emp_id, device_id, login_time),
     status ENUM('Successful', 'Failed') NOT NULL,
     failure_reason TEXT,
-    FOREIGN KEY (employee_account_id) REFERENCES EMPLOYEE_ACCOUNT(employee_account_id) ON DELETE SET NULL,
-    FOREIGN KEY (device_id) REFERENCES DEVICE(device_id) ON DELETE SET NULL
+		FOREIGN KEY (emp_id) REFERENCES EMPLOYEES(emp_id) ON DELETE CASCADE,
+		FOREIGN KEY (device_id) REFERENCES DEVICE(device_id) ON DELETE CASCADE
 );
-
 CREATE TABLE CUS_ACCOUNT_CHANGE_HISTORY (
-    customer_account_id INT,
+    customer_account_id VARCHAR(17),
     change_time DATETIME NOT NULL,
     field_change VARCHAR(100) NOT NULL,
     new_value TEXT,
     old_value TEXT,
-	PRIMARY KEY ( customer_account_id, change_time),
-    FOREIGN KEY (customer_account_id) REFERENCES CUSTOMER_ACCOUNT(customer_account_id) ON DELETE CASCADE
+		PRIMARY KEY ( customer_account_id, change_time),
+		FOREIGN KEY (customer_account_id) REFERENCES CUSTOMER_ACCOUNT(customer_account_id) ON DELETE CASCADE
 );
-
 CREATE TABLE FRAUD_PATTERN (
     fraud_pattern_id INT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
+    fraud_pattern_name VARCHAR(100) UNIQUE NOT NULL,
     description TEXT
 );
-
 CREATE TABLE SUSPICION (
     transaction_id CHAR(36) ,
     fraud_pattern_id INT,
@@ -194,24 +225,31 @@ CREATE TABLE SUSPICION (
     severity_level VARCHAR(50) NOT NULL,
     status ENUM('Unresolved', 'Investigating', 'Resolved', 'False_positive') DEFAULT 'Unresolved',
     	PRIMARY KEY(transaction_id, fraud_pattern_id, detected_time),
-	FOREIGN KEY (transaction_id) REFERENCES TRANSACTION(transaction_id) ON DELETE CASCADE,
-	FOREIGN KEY (fraud_pattern_id) REFERENCES FRAUD_PATTERN(fraud_pattern_id) ON DELETE SET NULL
+		FOREIGN KEY (transaction_id) REFERENCES TRANSACTIONs(transaction_id) ON DELETE CASCADE,
+		FOREIGN KEY (fraud_pattern_id) REFERENCES FRAUD_PATTERN(fraud_pattern_id) ON DELETE CASCADE
 );
-# Báo cáo
+-- --------------------------------------------------------------------------------
+CREATE INDEX idx_customer_id ON CUSTOMER_ACCOUNT(customer_id);
+CREATE INDEX idx_transaction_time ON TRANSACTIONS(transaction_time);
+CREATE INDEX idx_transaction_type_id ON TRANSACTIONS(transaction_type_id);
+CREATE INDEX idx_branch_id ON EMPLOYEES(branch_id);
+CREATE INDEX idx_emp_position_id ON EMPLOYEES(emp_position_id);
+-- --------------------------------------------------------------------------------
+
+					-- REPORT --------------------------------------------
+                    
+                    
 CREATE TABLE REPORT (
     report_id INT AUTO_INCREMENT PRIMARY KEY,
-    report_name VARCHAR(100) NOT NULL,
-    report_description TEXT,
-    procedure_name VARCHAR(100) NOT NULL  -- Tên stored procedure được gọi để tạo báo cáo
+    report_name VARCHAR(100) NOT NULL UNIQUE,
+    report_description TEXT
 );
-
 CREATE TABLE REPORT_ACCESS (
     report_id INT,
     emp_position ENUM('D','M','T','A'),  -- Director, Manager, Teller, Auditor
     PRIMARY KEY (report_id, emp_position),
     FOREIGN KEY (report_id) REFERENCES REPORT(report_id)
 );
-
 CREATE TABLE REPORT_FILTER (
     report_id INT,
     filter_name VARCHAR(100),
@@ -219,23 +257,15 @@ CREATE TABLE REPORT_FILTER (
     is_required BOOLEAN,
     FOREIGN KEY (report_id) REFERENCES report(report_id)
 );
-
 #View employee_allowed_reports – Hiển thị các báo cáo mà nhân viên được truy cập
-CREATE OR REPLACE VIEW employee_allowed_reports AS
-SELECT 
-    e.Emp_ID, 
-    e.Emp_Position, 
-    r.report_id, 
-    r.report_name, 
-    r.report_description,
-    r.procedure_name
-FROM Employees e
-JOIN REPORT_ACCESS ra ON e.Emp_Position = ra.emp_position
-JOIN REPORT r ON ra.report_id = r.report_id;
-
-
-
-
-
-
-
+-- CREATE OR REPLACE VIEW employee_allowed_reports AS
+-- SELECT 
+--     e.Emp_ID, 
+--     e.Emp_Position, 
+--     r.report_id, 
+--     r.report_name, 
+--     r.report_description,
+--     r.procedure_name
+-- FROM Employees e
+-- JOIN REPORT_ACCESS ra ON e.Emp_Position = ra.emp_position
+-- JOIN REPORT r ON ra.report_id = r.report_id;

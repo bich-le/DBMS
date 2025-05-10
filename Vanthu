@@ -1,0 +1,184 @@
+-- UPDATE TABLES --------------------------------------------------------------------------------------------------
+
+
+-- Record a Transaction
+              DELIMITER //
+              CREATE PROCEDURE RecordTransaction(
+                  IN p_transaction_id VARCHAR(18),
+                  IN p_transaction_type_id VARCHAR(3),
+                  IN p_account_id VARCHAR(17),
+                  IN p_amount INT,
+                  IN p_direction ENUM('Debit', 'Credit'),
+                  IN p_related_account_id VARCHAR(17),
+                  IN p_status ENUM('Successful', 'Failed')
+              )
+              BEGIN
+                  INSERT INTO TRANSACTIONS (
+                      transaction_id, transaction_type_id, customer_account_id,
+                      amount, direction, related_customer_account_id,
+                      transaction_status
+                  )
+                  VALUES (
+                      p_transaction_id, p_transaction_type_id, p_account_id,
+                      p_amount, p_direction, p_related_account_id,
+                      p_status
+                  );
+              END //
+              DELIMITER ;
+
+-- Log System Activity 
+              DELIMITER //
+              CREATE PROCEDURE LogSystemActivity(
+                  IN p_category_id INT,
+                  IN p_time DATETIME,
+                  IN p_emp_id VARCHAR(11),
+                  IN p_device_id INT,
+                  IN p_objective_id VARCHAR(20),
+                  IN p_old_value VARCHAR(15),
+                  IN p_new_value VARCHAR(15),
+                  IN p_description TEXT,
+                  IN p_status ENUM('Successful', 'Failed')
+              )
+              BEGIN
+                  INSERT INTO SYSTEM_ACTIVITIES_HISTORY (
+                      activity_category_id, activity_time, emp_id,
+                      device_id, objective_id, old_value,
+                      new_value, description, status
+                  )
+                  VALUES (
+                      p_category_id, p_time, p_emp_id,
+                      p_device_id, p_objective_id, p_old_value,
+                      p_new_value, p_description, p_status
+                  );
+              END //
+              DELIMITER ;
+
+-- Update Interest_rate Table:
+              DELIMITER //
+              CREATE PROCEDURE UpdateInterestRate (
+                  IN p_rate_id TINYINT,
+                  IN p_val DECIMAL(5,3),
+                  IN p_account_type_id INT,
+                  IN p_min_balance INT,
+                  IN p_max_balance INT,
+                  IN p_term INT,
+                  IN p_status ENUM('Active', 'Inactive')
+              )
+              BEGIN
+                  IF p_min_balance < 0 OR p_max_balance < p_min_balance THEN
+                      SIGNAL SQLSTATE '45000'
+                      SET MESSAGE_TEXT = 'Invalid balance range';
+                  END IF;
+              
+                  UPDATE INTEREST_RATE
+                  SET interest_rate_val = p_val,
+                      account_type_id = p_account_type_id,
+                      min_balance = p_min_balance,
+                      max_balance = p_max_balance,
+                      term = p_term,
+                      status = p_status
+                  WHERE interest_rate_id = p_rate_id;
+              END //
+              DELIMITER ;
+
+-- Update System_activity_category table:
+              DELIMITER //
+              CREATE PROCEDURE UpdateSystemActivityCategory (
+                  IN p_activity_category_id INT,
+                  IN p_activity_category_name VARCHAR(30),
+                  IN p_description TEXT
+              )
+              BEGIN
+                  -- Check if the ID exists
+                  IF EXISTS (
+                      SELECT 1 FROM SYSTEM_ACTIVITY_CATEGORIES WHERE activity_category_id = p_activity_category_id
+                  ) THEN
+                      -- Attempt to update
+                      UPDATE SYSTEM_ACTIVITY_CATEGORIES
+                      SET 
+                          activity_category_name = p_activity_category_name,
+                          description = p_description
+                      WHERE activity_category_id = p_activity_category_id;
+                  ELSE
+                      SIGNAL SQLSTATE '45000'
+                      SET MESSAGE_TEXT = 'Activity category ID does not exist.';
+                  END IF;
+              END //
+              DELIMITER ;
+-- TRIGGER ----------------------------------------------
+-- Trigger cho Fraud Pattern: Transaction Amount Spike (Số tiền giao dịch bất thường)
+-- Khi một giao dịch có số tiền vượt quá ba lần trung bình của số tiền giao dịch trong vòng 7 ngày qua cho cùng một tài khoản, trigger sẽ thêm vào bảng Suspicion.
+DELIMITER $$
+
+CREATE TRIGGER check_transaction_amount_spike
+AFTER INSERT ON TRANSACTIONS
+FOR EACH ROW
+BEGIN
+    -- Kiểm tra xem số tiền giao dịch có vượt quá 3 lần số tiền trung bình trong 7 ngày qua không
+    DECLARE avg_amount DECIMAL(10, 2);
+    
+    -- Lấy số tiền trung bình của các giao dịch trong vòng 7 ngày qua
+    SELECT AVG(amount)
+    INTO avg_amount
+    FROM TRANSACTIONS
+    WHERE customer_account_id = NEW.customer_account_id
+    AND transaction_time > NOW() - INTERVAL 7 DAY;
+    
+    -- Nếu số tiền giao dịch vượt quá 3 lần số tiền trung bình, tạo bản ghi trong Suspicion
+    IF NEW.amount > 3 * avg_amount THEN
+        INSERT INTO SUSPICION (transaction_id, fraud_pattern_id, detected_time, severity_level, status)
+        VALUES (NEW.transaction_id, 'FP001', NOW(), 'High', 'Unresolved');
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- Trigger cho Fraud Pattern: High Frequency Transactions (Giao dịch có tần suất cao)
+---Khi một tài khoản thực hiện hơn 5 giao dịch trong vòng 1 phút, trigger sẽ thêm vào bảng
+DELIMITER $$
+
+CREATE TRIGGER check_high_frequency_transactions
+AFTER INSERT ON TRANSACTIONS
+FOR EACH ROW
+BEGIN
+    -- Đếm số giao dịch trong vòng 1 phút của tài khoản hiện tại
+    DECLARE transaction_count INT;
+    
+    SELECT COUNT(*)
+    INTO transaction_count
+    FROM TRANSACTIONS
+    WHERE customer_account_id = NEW.customer_account_id
+    AND transaction_time BETWEEN NOW() - INTERVAL 1 MINUTE AND NOW();
+    
+    -- Nếu số giao dịch lớn hơn 5, tạo bản ghi trong Suspicion
+    IF transaction_count > 5 THEN
+        INSERT INTO SUSPICION (transaction_id, fraud_pattern_id, detected_time, severity_level, status)
+        VALUES (NEW.transaction_id, 'FP002', NOW(), 'Medium', 'Unresolved');
+    END IF;
+END$$
+DELIMITER ;
+
+--Trigger cho Fraud Pattern: Dormant Account Activity (Hoạt động trên tài khoản không sử dụng)
+---Nếu tài khoản không thực hiện giao dịch trong hơn 3 tháng và sau đó có giao dịch lớn từ 50.000.000 VND trở lên, trigger sẽ ghi nhận một nghi ngờ gian lận.
+DELIMITER $$
+
+CREATE TRIGGER check_dormant_account_activity
+AFTER INSERT ON TRANSACTIONS
+FOR EACH ROW
+BEGIN
+    -- Kiểm tra xem tài khoản có hoạt động không trong hơn 3 tháng
+    DECLARE last_transaction_date DATE;
+    
+    SELECT MAX(transaction_time)
+    INTO last_transaction_date
+    FROM TRANSACTIONS
+    WHERE customer_account_id = NEW.customer_account_id;
+    
+    -- Nếu tài khoản không có giao dịch trong hơn 3 tháng và giao dịch hiện tại lớn hơn 50 triệu
+    IF DATEDIFF(NOW(), last_transaction_date) > 90 AND NEW.amount >= 50000000 THEN
+        INSERT INTO SUSPICION (transaction_id, fraud_pattern_id, detected_time, severity_level, status)
+        VALUES (NEW.transaction_id, 'FP004', NOW(), 'High', 'Unresolved');
+    END IF;
+END$$
+
+DELIMITER ;
