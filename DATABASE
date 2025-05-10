@@ -24,9 +24,9 @@ CREATE TABLE IF NOT EXISTS CUSTOMERS (
 CREATE TABLE IF NOT EXISTS CUSTOMER_ACCOUNT (
     customer_account_id VARCHAR(17) primary key, -- DTNB[customer_account_type_id][2-digit year][7-digit index]
     customer_id VARCHAR(17),
-    account_status ENUM('Active', 'Temporary Locked', 'Locked') DEFAULT 'Active', 
+    cus_account_status ENUM('Active', 'Temporary Locked', 'Locked') DEFAULT 'Active', 
     opening_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    account_type ENUM('Saving', 'Current', 'Fixed') ,
+    cus_account_type ENUM('Saving', 'Current', 'Fixed') ,
     FOREIGN KEY (customer_id) REFERENCES CUSTOMERS(customer_id) on delete set null
 );
 CREATE TABLE IF NOT EXISTS INTEREST_RATE (
@@ -99,7 +99,7 @@ CREATE TABLE TRANSACTIONS (
     transaction_id VARCHAR(18) PRIMARY KEY,
     customer_account_id VARCHAR(17),
     transaction_amount INT NOT NULL,
-    reason TEXT NOT NULL,
+    failure_reason TEXT NOT NULL,
     attempted_time DATETIME DEFAULT CURRENT_TIMESTAMP,
 	FOREIGN KEY (transaction_id) REFERENCES TRANSACTIONS(transaction_id) ON DELETE CASCADE, 
     FOREIGN KEY (customer_account_id) REFERENCES CUSTOMER_ACCOUNT(customer_account_id) ON DELETE CASCADE
@@ -150,7 +150,7 @@ CREATE TABLE EMPLOYEE_ACCOUNT (
     emp_id VARCHAR(11) PRIMARY KEY,                                      
     username VARCHAR(100) NOT NULL UNIQUE,                 
     password_hash VARCHAR(255) NOT NULL,                   -- Hashed password (never store plaintext passwords)
-    status ENUM('Active', 'Inactive', 'Suspended') DEFAULT 'Active',  
+    emp_acc_status ENUM('Active', 'Inactive', 'Suspended') DEFAULT 'Active',  
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,         
     FOREIGN KEY (emp_id) REFERENCES EMPLOYEEs(emp_id) ON DELETE CASCADE  
 );
@@ -196,7 +196,7 @@ CREATE TABLE SYSTEM_ACTIVITIES_HISTORY (
     old_value VARCHAR(15),
     new_value VARCHAR(15),
     description TEXT,
-    status ENUM('Successful', 'Failed') NOT NULL,
+    sys_activity_status ENUM('Successful', 'Failed') NOT NULL,
 		FOREIGN KEY (activity_category_id) REFERENCES SYSTEM_ACTIVITY_CATEGORIES(activity_category_id) ON DELETE CASCADE,
 		FOREIGN KEY (emp_id) REFERENCES EMPLOYEES(emp_id) ON DELETE SET NULL,
 		FOREIGN KEY (device_id) REFERENCES DEVICE(device_id) ON DELETE SET NULL
@@ -208,7 +208,7 @@ CREATE TABLE INTERNAL_LOGIN_HISTORY (
     ip_address VARCHAR(45),
     device_id INT,
     PRIMARY KEY (emp_id, device_id, login_time),
-    status ENUM('Successful', 'Failed') NOT NULL,
+    login_status ENUM('Successful', 'Failed') NOT NULL,
     failure_reason TEXT,
 		FOREIGN KEY (emp_id) REFERENCES EMPLOYEES(emp_id) ON DELETE CASCADE,
 		FOREIGN KEY (device_id) REFERENCES DEVICE(device_id) ON DELETE CASCADE
@@ -232,7 +232,7 @@ CREATE TABLE SUSPICION (
     fraud_pattern_id INT,
     detected_time DATETIME,
     severity_level VARCHAR(50) NOT NULL,
-    status ENUM('Unresolved', 'Investigating', 'Resolved', 'False_positive') DEFAULT 'Unresolved',
+    suspicion_status ENUM('Unresolved', 'Investigating', 'Resolved', 'False_positive') DEFAULT 'Unresolved',
     	PRIMARY KEY(transaction_id, fraud_pattern_id, detected_time),
 		FOREIGN KEY (transaction_id) REFERENCES TRANSACTIONs(transaction_id) ON DELETE CASCADE,
 		FOREIGN KEY (fraud_pattern_id) REFERENCES FRAUD_PATTERN(fraud_pattern_id) ON DELETE CASCADE
