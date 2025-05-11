@@ -337,3 +337,60 @@ BEGIN
     END IF;
 END//
 DELIMITER ;
+DELIMITER $$
+
+CREATE TRIGGER after_insert_customer_account
+AFTER INSERT ON CUSTOMER_ACCOUNTS
+FOR EACH ROW
+BEGIN
+    DECLARE matched_interest_id TINYINT;
+
+    -- Trường hợp: CHECK ACCOUNT
+    IF NEW.cus_account_type_id = 'C' THEN
+        SELECT interest_rate_id INTO matched_interest_id
+        FROM INTEREST_RATES
+        WHERE cus_account_type_id = 'C'
+          AND status = 'Active'
+          AND 0 BETWEEN min_balance AND IFNULL(max_balance, 999999999999)
+        ORDER BY interest_rate_val DESC
+        LIMIT 1;
+
+        INSERT INTO CHECK_ACCOUNTS (cus_account_id, check_acc_balance, interest_rate_id, transfer_limit, daily_transfer_limit)
+        VALUES (NEW.cus_account_id, 0, matched_interest_id, 10000000, 50000000);
+
+    -- Trường hợp: SAVING ACCOUNT
+    ELSEIF NEW.cus_account_type_id = 'S' THEN
+        SELECT interest_rate_id INTO matched_interest_id
+        FROM INTEREST_RATES
+        WHERE cus_account_type_id = 'S'
+          AND status = 'Active'
+          AND 0 BETWEEN min_balance AND IFNULL(max_balance, 999999999999)
+        ORDER BY interest_rate_val DESC
+        LIMIT 1;
+
+        INSERT INTO SAVING_ACCOUNTS (cus_account_id, saving_acc_balance, interest_rate_id)
+        VALUES (NEW.cus_account_id, 0, matched_interest_id);
+
+    -- Trường hợp: FIXED DEPOSIT ACCOUNT
+    ELSEIF NEW.cus_account_type_id = 'F' THEN
+        SELECT interest_rate_id INTO matched_interest_id
+        FROM INTEREST_RATES
+        WHERE cus_account_type_id = 'F'
+          AND status = 'Active'
+          AND 1000000 BETWEEN min_balance AND IFNULL(max_balance, 999999999999)
+          AND term = 6
+        ORDER BY interest_rate_val DESC
+        LIMIT 1;
+
+        INSERT INTO FIXED_DEPOSIT_ACCOUNTS (cus_account_id, deposit_amount, interest_rate_id, deposit_date, maturity_date)
+        VALUES (
+            NEW.cus_account_id,
+            1000000,
+            matched_interest_id,
+            CURRENT_DATE(),
+            DATE_ADD(CURRENT_DATE(), INTERVAL 6 MONTH)
+        );
+    END IF;
+END $$
+
+DELIMITER ;
