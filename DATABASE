@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS INTEREST_RATES (
 );
 CREATE TABLE SAVING_ACCOUNTS(
     cus_account_id VARCHAR(17) primary key,
-    interest_rate_id TINYint ,
+    interest_rate_id TINYint not null,
     saving_acc_balance bigint unsigned,
     
     FOREIGN KEY (cus_account_id) REFERENCES CUSTOMER_ACCOUNTS(cus_account_id),
@@ -65,7 +65,7 @@ CREATE TABLE SAVING_ACCOUNTS(
 );
 CREATE TABLE CHECK_ACCOUNTS(
     cus_account_id VARCHAR(17) primary key,
-    check_acc_balance bigint unsigned,
+    check_acc_balance bigint unsigned not null,
     interest_rate_id TINYint,
     transfer_limit int unsigned
 		CHECK (transfer_limit <= 100000000),
@@ -79,8 +79,8 @@ CREATE TABLE FIXED_DEPOSIT_ACCOUNTS(
     interest_rate_id tinyint,
     deposit_amount bigint NOT NULL
 		CHECK (deposit_amount>1000),
-    deposit_date DATE NOT NULL,
-    maturity_date DATE NOT NULL,
+    deposit_date DATE ,
+    maturity_date DATE ,
 		CHECK (maturity_date > deposit_date),
         
     FOREIGN KEY (cus_account_id) REFERENCES CUSTOMER_ACCOUNTS(cus_account_id) ON DELETE CASCADE,
