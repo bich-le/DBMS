@@ -67,8 +67,9 @@ CREATE TABLE CHECK_ACCOUNTS(
     cus_account_id VARCHAR(17) primary key,
     check_acc_balance bigint unsigned,
     interest_rate_id TINYint,
-    daily_transfer_limit int unsigned
-		CHECK (daily_transfer_limit <= 100000000),
+    transfer_limit int unsigned
+		CHECK (transfer_limit <= 100000000),
+    daily_transfer_limit BIGint unsigned,
         
     FOREIGN KEY (cus_account_id) REFERENCES CUSTOMER_ACCOUNTS(cus_account_id),
     FOREIGN KEY (interest_rate_id) REFERENCES INTEREST_RATES(interest_rate_id)
