@@ -205,3 +205,42 @@ END$$
 
 DELIMITER ;
 
+-- Check nếu deposit_date ko ở trong tương lai---------------------------------------------------------
+DELIMITER //
+CREATE TRIGGER check_deposit_date
+BEFORE INSERT ON FIXED_DEPOSIT_ACCOUNTS
+FOR EACH ROW
+BEGIN
+    IF NEW.deposit_date > CURDATE() THEN
+        SIGNAL SQLSTATE '45000' 
+        SET MESSAGE_TEXT = 'Deposit date cannot be in the future';
+    END IF;
+END//
+
+CREATE TRIGGER check_deposit_date_update
+BEFORE UPDATE ON FIXED_DEPOSIT_ACCOUNTS
+FOR EACH ROW
+BEGIN
+    IF NEW.deposit_date > CURDATE() THEN
+        SIGNAL SQLSTATE '45000' 
+        SET MESSAGE_TEXT = 'Deposit date cannot be in the future';
+    END IF;
+END//
+DELIMITER ;
+-- CHeck transaction_time ko ở trong tương lai và 2 tk đầu vào và ra không trùng nhau ------------------------------------
+CREATE TRIGGER validate_transaction BEFORE INSERT ON TRANSACTIONS
+FOR EACH ROW 
+BEGIN
+    -- Kiểm tra tài khoản nguồn ≠ tài khoản đích
+    IF NEW.related_cus_account_id = NEW.cus_account_id THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Invalid transaction';
+    END IF;
+    
+    -- Kiểm tra ngày giao dịch không trong tương lai
+    IF NEW.transaction_time > NOW() THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Future date not allowed';
+    END IF;
+END;
+
+-- 3. Thêm index hỗ trợ
+CREATE INDEX idx_transactions_account_time ON TRANSACTIONS(cus_account_id, transaction_time);
