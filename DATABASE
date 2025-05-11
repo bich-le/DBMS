@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS CUSTOMER_ACCOUNTS (
     cus_account_status ENUM('Active', 'Temporary Locked', 'Locked') DEFAULT 'Active', 
     opening_date DATETIME DEFAULT CURRENT_TIMESTAMP,
     cus_account_type_id VARCHAR(2) ,
-    FOREIGN KEY (cus_id) REFERENCES CUSTOMERS(cus_id) on delete set null,
+    
+    FOREIGN KEY (cus_id) REFERENCES CUSTOMERS(cus_id) on delete cascade,
     FOREIGN KEY (cus_account_type_id) REFERENCES CUSTOMER_ACCOUNT_TYPES(cus_account_type_id) on delete set null
 );
 CREATE TABLE IF NOT EXISTS INTEREST_RATES (
@@ -40,28 +41,30 @@ CREATE TABLE IF NOT EXISTS INTEREST_RATES (
     interest_rate_val DECIMAL(5,3) NOT NULL 
 		CHECK (interest_rate_val >0),
     cus_account_type_id VARCHAR(2) not null,
-    min_balance INT(10),
-    max_balance INT(10),
+    min_balance INT(10) UNSIGNED,
+    max_balance INT(10) UNSIGNED,
+		CHECK (max_balance > min_balance) ,
     term INT(2),
     status ENUM('Active', 'Inactive') DEFAULT "Active",
-        FOREIGN KEY (cus_account_type_id) REFERENCES CUSTOMER_ACCOUNT_TYPES(cus_account_type_id) on delete cascade
+	
+    FOREIGN KEY (cus_account_type_id) REFERENCES CUSTOMER_ACCOUNT_TYPES(cus_account_type_id) on delete cascade
 );
 CREATE TABLE SAVING_ACCOUNTS(
     cus_account_id VARCHAR(17) primary key,
-    interest_rate_id TINYint,
-    saving_acc_balance bigint
-		CHECK (saving_acc_balance>0),
+    interest_rate_id TINYint ,
+    saving_acc_balance bigint unsigned,
+    
     FOREIGN KEY (cus_account_id) REFERENCES CUSTOMER_ACCOUNTS(cus_account_id),
     FOREIGN KEY (interest_rate_id) REFERENCES INTEREST_RATES(interest_rate_id)
 );
 
 CREATE TABLE CHECK_ACCOUNTS(
     cus_account_id VARCHAR(17) primary key,
-    current_acc_balance bigint
-		CHECK (current_acc_balance>0),
+    current_acc_balance bigint unsigned,
     interest_rate_id TINYint,
-    daily_transfer_limit int
-		CHECK (daily_transfer_limit > 0 AND daily_transfer_limit <= 100000000),
+    daily_transfer_limit int unsigned
+		CHECK (daily_transfer_limit <= 100000000),
+        
     FOREIGN KEY (cus_account_id) REFERENCES CUSTOMER_ACCOUNTS(cus_account_id),
     FOREIGN KEY (interest_rate_id) REFERENCES INTEREST_RATES(interest_rate_id)
 );
@@ -72,6 +75,8 @@ CREATE TABLE FIXED_DEPOSIT_ACCOUNTS(
 		CHECK (deposit_amount>1000),
     deposit_date DATE NOT NULL,
     maturity_date DATE NOT NULL,
+		CHECK (maturity_date > deposit_date),
+        
     FOREIGN KEY (cus_account_id) REFERENCES CUSTOMER_ACCOUNTS(cus_account_id) ON DELETE CASCADE,
     FOREIGN KEY (interest_rate_id) REFERENCES INTEREST_RATES(interest_rate_id) ON DELETE SET NULL
 );
@@ -93,6 +98,7 @@ CREATE TABLE TRANSACTIONS (
 	direction ENUM('Debit', 'Credit') NOT NULL,
     related_cus_account_id VARCHAR(17) ,
     transaction_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
 	FOREIGN KEY (cus_account_id) REFERENCES CUSTOMER_ACCOUNTS(cus_account_id) ON DELETE SET NULL,
    	FOREIGN KEY (related_cus_account_id) REFERENCES CUSTOMER_ACCOUNTS(cus_account_id) ON DELETE SET NULL,
 	FOREIGN KEY (transaction_type_id) REFERENCES TRANSACTION_TYPES(transaction_type_id) ON DELETE SET NULL
@@ -100,12 +106,17 @@ CREATE TABLE TRANSACTIONS (
  CREATE TABLE FAILED_TRANSACTIONS (
     transaction_id VARCHAR(18) PRIMARY KEY,
     cus_account_id VARCHAR(17),
-    transaction_amount INT NOT NULL,
-    reason TEXT NOT NULL,
+    transaction_amount INT unsigned NOT NULL,
+    faiure_reason TEXT NOT NULL,
     attempted_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
 	FOREIGN KEY (transaction_id) REFERENCES TRANSACTIONS(transaction_id) ON DELETE CASCADE, 
     FOREIGN KEY (cus_account_id) REFERENCES CUSTOMER_ACCOUNTS(cus_account_id) ON DELETE CASCADE
 );
+
+
+
+
 
 
 					-- INTERNAL SYSTEM --------------------------------------------
@@ -130,9 +141,10 @@ CREATE TABLE IF NOT EXISTS EMPLOYEES (
     emp_email VARCHAR(50) UNIQUE NOT NULL,
     emp_address VARCHAR(255) NOT NULL,
     emp_hire_date DATE NOT NULL,
-    emp_salary INT(9) NOT NULL,
+    emp_salary INT(9) UNSIGNED NOT NULL,
     branch_id VARCHAR(4),
     emp_position_id VARCHAR(2),
+    
     FOREIGN KEY (branch_id) REFERENCES BRANCHES(branch_id) ON DELETE CASCADE,
     FOREIGN KEY (emp_position_id) REFERENCES EMPLOYEE_POSITIONS(emp_position_id) ON DELETE SET NULL
 );
@@ -141,6 +153,7 @@ CREATE TABLE IF NOT EXISTS EMPLOYEE_CUSTOMERS (
     cus_id VARCHAR(17) ,
     service VARCHAR(50) NOT NULL,
     assigned_date DATE NOT NULL,
+    
     PRIMARY KEY (emp_id, cus_id),
     FOREIGN KEY (emp_id) REFERENCES EMPLOYEES(emp_id) ON DELETE cascade,
     FOREIGN KEY (cus_id) REFERENCES CUSTOMERS(cus_id) ON DELETE CASCADE
@@ -151,6 +164,7 @@ CREATE TABLE EMPLOYEE_ACCOUNTS (
     password_hash VARCHAR(255) NOT NULL,                   -- Hashed password (never store plaintext passwords)
     status ENUM('Active', 'Inactive', 'Suspended') DEFAULT 'Active',  
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,         
+    
     FOREIGN KEY (emp_id) REFERENCES EMPLOYEEs(emp_id) ON DELETE CASCADE  
 );
 CREATE TABLE DEVICE_TYPES (
@@ -170,6 +184,7 @@ CREATE TABLE DEVICES (
     is_approved BOOLEAN DEFAULT FALSE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     last_checked_at DATETIME,
+    
     CONSTRAINT fk_type_device FOREIGN KEY (device_type_id) REFERENCES device_types(device_type_id)
 );
 
@@ -194,11 +209,13 @@ CREATE TABLE SYSTEM_ACTIVITIES_HISTORY (
     objective_id VARCHAR(20),
     old_value VARCHAR(15),
     new_value VARCHAR(15),
+		CHECK (new_value != old_value),
     description TEXT,
     status ENUM('Successful', 'Failed') NOT NULL,
-		FOREIGN KEY (activity_category_id) REFERENCES SYSTEM_ACTIVITY_CATEGORIES(activity_category_id) ON DELETE CASCADE,
-		FOREIGN KEY (emp_id) REFERENCES EMPLOYEES(emp_id) ON DELETE SET NULL,
-		FOREIGN KEY (device_id) REFERENCES DEVICES(device_id) ON DELETE SET NULL
+    
+	FOREIGN KEY (activity_category_id) REFERENCES SYSTEM_ACTIVITY_CATEGORIES(activity_category_id) ON DELETE CASCADE,
+	FOREIGN KEY (emp_id) REFERENCES EMPLOYEES(emp_id) ON DELETE SET NULL,
+	FOREIGN KEY (device_id) REFERENCES DEVICES(device_id) ON DELETE SET NULL
 );
 CREATE TABLE INTERNAL_LOGIN_HISTORY (
     emp_id VARCHAR(11),
@@ -209,8 +226,9 @@ CREATE TABLE INTERNAL_LOGIN_HISTORY (
     PRIMARY KEY (emp_id, device_id, login_time),
     status ENUM('Successful', 'Failed') NOT NULL,
     failure_reason TEXT,
-		FOREIGN KEY (emp_id) REFERENCES EMPLOYEES(emp_id) ON DELETE CASCADE,
-		FOREIGN KEY (device_id) REFERENCES DEVICES(device_id) ON DELETE CASCADE
+    
+	FOREIGN KEY (emp_id) REFERENCES EMPLOYEES(emp_id) ON DELETE CASCADE,
+	FOREIGN KEY (device_id) REFERENCES DEVICES(device_id) ON DELETE CASCADE
 );
 CREATE TABLE CUS_ACCOUNT_CHANGE_HISTORY (
     cus_account_id VARCHAR(17),
@@ -218,8 +236,9 @@ CREATE TABLE CUS_ACCOUNT_CHANGE_HISTORY (
     field_change VARCHAR(100) NOT NULL,
     new_value TEXT,
     old_value TEXT,
-		PRIMARY KEY ( cus_account_id, change_time),
-		FOREIGN KEY (cus_account_id) REFERENCES CUSTOMER_ACCOUNTS(cus_account_id) ON DELETE CASCADE
+    
+	PRIMARY KEY ( cus_account_id, change_time),
+	FOREIGN KEY (cus_account_id) REFERENCES CUSTOMER_ACCOUNTS(cus_account_id) ON DELETE CASCADE
 );
 CREATE TABLE FRAUD_PATTERNS (
     fraud_pattern_id INT auto_increment PRIMARY KEY,
@@ -232,16 +251,17 @@ CREATE TABLE SUSPICIONS (
     detected_time DATETIME,
     severity_level VARCHAR(50) NOT NULL,
     suspicion_status ENUM('Unresolved', 'Investigating', 'Resolved', 'False_positive') DEFAULT 'Unresolved',
-    	PRIMARY KEY(transaction_id, fraud_pattern_id, detected_time),
-		FOREIGN KEY (transaction_id) REFERENCES TRANSACTIONs(transaction_id) ON DELETE CASCADE,
-		FOREIGN KEY (fraud_pattern_id) REFERENCES FRAUD_PATTERNS(fraud_pattern_id) ON DELETE CASCADE
+    
+	PRIMARY KEY(transaction_id, fraud_pattern_id, detected_time),
+	FOREIGN KEY (transaction_id) REFERENCES TRANSACTIONs(transaction_id) ON DELETE CASCADE,
+	FOREIGN KEY (fraud_pattern_id) REFERENCES FRAUD_PATTERNS(fraud_pattern_id) ON DELETE CASCADE
 );
 -- --------------------------------------------------------------------------------
-CREATE INDEX idx_customer_id ON CUSTOMER_ACCOUNTS(customer_id);
-CREATE INDEX idx_transaction_time ON TRANSACTIONS(transaction_time);
-CREATE INDEX idx_transaction_type_id ON TRANSACTIONS(transaction_type_id);
-CREATE INDEX idx_branch_id ON EMPLOYEES(branch_id);
-CREATE INDEX idx_emp_position_id ON EMPLOYEES(emp_position_id);
+-- CREATE INDEX idx_customer_id ON CUSTOMER_ACCOUNTS(cus_id);
+-- CREATE INDEX idx_transaction_time ON TRANSACTIONS(transaction_time);
+-- CREATE INDEX idx_transaction_type_id ON TRANSACTIONS(transaction_type_id);
+-- CREATE INDEX idx_branch_id ON EMPLOYEES(branch_id);
+-- CREATE INDEX idx_emp_position_id ON EMPLOYEES(emp_position_id);
 -- --------------------------------------------------------------------------------
 
 					-- REPORT --------------------------------------------
