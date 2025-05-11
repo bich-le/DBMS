@@ -57,10 +57,9 @@ CREATE TABLE SAVING_ACCOUNTS(
     FOREIGN KEY (cus_account_id) REFERENCES CUSTOMER_ACCOUNTS(cus_account_id),
     FOREIGN KEY (interest_rate_id) REFERENCES INTEREST_RATES(interest_rate_id)
 );
-
 CREATE TABLE CHECK_ACCOUNTS(
     cus_account_id VARCHAR(17) primary key,
-    current_acc_balance bigint unsigned,
+    check_acc_balance bigint unsigned,
     interest_rate_id TINYint,
     daily_transfer_limit int unsigned
 		CHECK (daily_transfer_limit <= 100000000),
@@ -82,45 +81,61 @@ CREATE TABLE FIXED_DEPOSIT_ACCOUNTS(
 );
 
 
+
+
+
+
 					-- TRANSACTIONS SYSTEM --------------------------------------------
                     
 CREATE TABLE TRANSACTION_TYPES(
-    transaction_type_id VARCHAR(3) PRIMARY KEY,
-    transaction_type_name VARCHAR(20) NOT NULL,
+    trans_type_id VARCHAR(3) PRIMARY KEY,
+    trans_type_name VARCHAR(20) NOT NULL,
     description TEXT
 );
+-- Thêm các mã lỗi cơ bản có thể phát hiện bằng trigger
+CREATE TABLE TRANSACTION_ERROR_CODES (
+    trans_error_code VARCHAR(10) PRIMARY KEY,
+    trans_error_name VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    can_retry BOOLEAN DEFAULT FALSE,
+    needs_human_review BOOLEAN DEFAULT FALSE
+);
 CREATE TABLE TRANSACTIONS (
-    transaction_id VARCHAR(18) PRIMARY KEY, --  DTNB[transactin_type_id][2-digit year][7-digit index][day]
-    transaction_type_id varchar(3),
+    trans_id VARCHAR(18) PRIMARY KEY, --  DTNB[transactin_type_id][2-digit year][7-digit index][day]
+    trans_type_id varchar(3),
     cus_account_id VARCHAR(17) ,
-    transaction_amount INT NOT NULL
-		CHECK (transaction_amount >= 1000),
+	related_cus_account_id VARCHAR(17) ,
+    trans_amount INT NOT NULL
+		CHECK (trans_amount >= 1000),
 	direction ENUM('Debit', 'Credit') NOT NULL,
-    related_cus_account_id VARCHAR(17) ,
-    transaction_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    trans_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    trans_status enum("Pending","Failed", "Successful") DEFAULT 'Pending',
+	trans_error_code VARCHAR(10),
     
+	FOREIGN KEY (trans_error_code) REFERENCES TRANSACTION_ERROR_CODES(trans_error_code) ON DELETE SET NULL,
 	FOREIGN KEY (cus_account_id) REFERENCES CUSTOMER_ACCOUNTS(cus_account_id) ON DELETE SET NULL,
    	FOREIGN KEY (related_cus_account_id) REFERENCES CUSTOMER_ACCOUNTS(cus_account_id) ON DELETE SET NULL,
-	FOREIGN KEY (transaction_type_id) REFERENCES TRANSACTION_TYPES(transaction_type_id) ON DELETE SET NULL
-);
+	FOREIGN KEY (trans_type_id) REFERENCES TRANSACTION_TYPES(trans_type_id) ON DELETE SET NULL
+	)	;
  CREATE TABLE FAILED_TRANSACTIONS (
-    transaction_id VARCHAR(18) PRIMARY KEY,
+    trans_id VARCHAR(18) PRIMARY KEY,
     cus_account_id VARCHAR(17),
-    transaction_amount INT unsigned NOT NULL,
+    trans_error_code VARCHAR(10) NOT NULL,
+    trans_amount INT unsigned NOT NULL,
     faiure_reason TEXT NOT NULL,
     attempted_time DATETIME DEFAULT CURRENT_TIMESTAMP,
     
-	FOREIGN KEY (transaction_id) REFERENCES TRANSACTIONS(transaction_id) ON DELETE CASCADE, 
+    FOREIGN KEY (trans_error_code) REFERENCES TRANSACTION_ERROR_CODES(trans_error_code) ON DELETE CASCADE,
+    FOREIGN KEY (trans_id) REFERENCES TRANSACTIONS(trans_id) ON DELETE CASCADE, 
     FOREIGN KEY (cus_account_id) REFERENCES CUSTOMER_ACCOUNTS(cus_account_id) ON DELETE CASCADE
 );
 
 
 
 
-
-
-					-- INTERNAL SYSTEM --------------------------------------------
-                    
+					                    
                     
 CREATE TABLE IF NOT EXISTS BRANCHES (
     branch_id VARCHAR(4) PRIMARY KEY, -- VD: HN, HCM
@@ -148,15 +163,21 @@ CREATE TABLE IF NOT EXISTS EMPLOYEES (
     FOREIGN KEY (branch_id) REFERENCES BRANCHES(branch_id) ON DELETE CASCADE,
     FOREIGN KEY (emp_position_id) REFERENCES EMPLOYEE_POSITIONS(emp_position_id) ON DELETE SET NULL
 );
+CREATE TABLE IF NOT EXISTS SERVICE_TYPES (
+    service_type_id VARCHAR(50) PRIMARY KEY,
+    service_name VARCHAR(100) NOT NULL,
+    description TEXT
+);
 CREATE TABLE IF NOT EXISTS EMPLOYEE_CUSTOMERS (
     emp_id VARCHAR(11),
-    cus_id VARCHAR(17) ,
-    service VARCHAR(50) NOT NULL,
+    cus_id VARCHAR(17),
+    service_type_id VARCHAR(50) NOT NULL,
     assigned_date DATE NOT NULL,
     
     PRIMARY KEY (emp_id, cus_id),
-    FOREIGN KEY (emp_id) REFERENCES EMPLOYEES(emp_id) ON DELETE cascade,
-    FOREIGN KEY (cus_id) REFERENCES CUSTOMERS(cus_id) ON DELETE CASCADE
+    FOREIGN KEY (emp_id) REFERENCES EMPLOYEES(emp_id) ON DELETE CASCADE,
+    FOREIGN KEY (cus_id) REFERENCES CUSTOMERS(cus_id) ON DELETE CASCADE,
+    FOREIGN KEY (service_type_id) REFERENCES SERVICE_TYPES(service_type_id) ON DELETE RESTRICT
 );
 CREATE TABLE EMPLOYEE_ACCOUNTS (
     emp_id VARCHAR(11) PRIMARY KEY,                                      
@@ -246,20 +267,20 @@ CREATE TABLE FRAUD_PATTERNS (
     description TEXT
 );
 CREATE TABLE SUSPICIONS (
-    transaction_id CHAR(36) ,
+    trans_id VARCHAR(18) ,
     fraud_pattern_id INT,
     detected_time DATETIME,
     severity_level VARCHAR(50) NOT NULL,
     suspicion_status ENUM('Unresolved', 'Investigating', 'Resolved', 'False_positive') DEFAULT 'Unresolved',
     
-	PRIMARY KEY(transaction_id, fraud_pattern_id, detected_time),
-	FOREIGN KEY (transaction_id) REFERENCES TRANSACTIONs(transaction_id) ON DELETE CASCADE,
+	PRIMARY KEY(trans_id, fraud_pattern_id, detected_time),
+	FOREIGN KEY (trans_id) REFERENCES TRANSACTIONs(trans_id) ON DELETE CASCADE,
 	FOREIGN KEY (fraud_pattern_id) REFERENCES FRAUD_PATTERNS(fraud_pattern_id) ON DELETE CASCADE
 );
 -- --------------------------------------------------------------------------------
 -- CREATE INDEX idx_customer_id ON CUSTOMER_ACCOUNTS(cus_id);
--- CREATE INDEX idx_transaction_time ON TRANSACTIONS(transaction_time);
--- CREATE INDEX idx_transaction_type_id ON TRANSACTIONS(transaction_type_id);
+-- CREATE INDEX idx_trans_time ON TRANSACTIONS(trans_time);
+-- CREATE INDEX idx_trans_type_id ON TRANSACTIONS(trans_type_id);
 -- CREATE INDEX idx_branch_id ON EMPLOYEES(branch_id);
 -- CREATE INDEX idx_emp_position_id ON EMPLOYEES(emp_position_id);
 -- --------------------------------------------------------------------------------
@@ -297,3 +318,5 @@ CREATE TABLE REPORT_FILTER (
 -- FROM Employees e
 -- JOIN REPORT_ACCESS ra ON e.Emp_Position = ra.emp_position
 -- JOIN REPORT r ON ra.report_id = r.report_id;
+
+-- Check nếu deposit_date ko ở trong tương lai---------------------------------------------------------
