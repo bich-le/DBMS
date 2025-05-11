@@ -86,7 +86,10 @@ VALUES
 ('FP001', 'Transaction Amount Spike', 'A transaction exceeds three times the average amount of that account over the last 7 days.'),
 ('FP002', 'High Frequency Transactions', 'An account makes more than 5 transactions within 1 minute.'),
 ('FP004', 'Dormant Account Activity', 'An account that has not had transactions for more than 3 months suddenly has a large transaction. From 50,000,000');
-
+INSERT INTO CUSTOMER_ACCOUNT_TYPES VALUES 
+('S', 'Saving Account'),
+('C', 'Checking Account'),
+('F', 'Fixed Deposit');
 -- Insert Banking Transaction Types
 INSERT INTO TRANSACTION_TYPE (transaction_type_id, transaction_type_name, description)
 VALUES
@@ -120,6 +123,13 @@ VALUES
     (5.200, 'F', 1000000, NULL, 6),  -- Account Type: Fixed Deposit Account, Rate: 5.200%, 6 month term
     (5.500, 'F', 1000000, NULL, 12);  -- Account Type: Fixed Deposit Account, Rate: 5.500%, 12 month term
 
+INSERT INTO TRANSACTION_ERROR_CODES VALUES
+('VAL-001', 'SAME ACCOUNT', 'Source and destination accounts are the same', TRUE, TRUE, FALSE),
+('ACC-001', 'ACCOUNT LOCKED', 'The account has been locked', TRUE, FALSE, TRUE),
+('BAL-001', 'INSUFFICIENT BALANCE', 'Insufficient account balance', TRUE, TRUE, FALSE),
+('LIMIT-001', 'TRANSACTION LIMIT EXCEEDED', 'Exceeded the transaction limit', TRUE, FALSE, TRUE),
+('LIMIT-002', 'DAILY TRANSACTION LIMIT EXCEEDED', 'Exceeded the daily transaction limit', TRUE, FALSE, TRUE);
+
 INSERT INTO DEVICE_TYPE (device_type_name, is_portable, requires_approval, description)
 VALUES
     ('Desktop', FALSE, NULL, 'Standard device for most office-based employees (e.g., tellers, customer service, loan officers).'),
@@ -134,3 +144,32 @@ INSERT INTO TRANSACTION_ERROR_CODES VALUES
 ('ACC-001', 'ACCOUNT LOCKED', 'The account has been locked', TRUE, FALSE, TRUE),
 ('BAL-001', 'INSUFFICIENT BALANCE', 'Insufficient account balance', TRUE, TRUE, FALSE),
 ('LIMIT-001', 'DAILY LIMIT EXCEEDED', 'Exceeded the daily transaction limit', TRUE, FALSE, TRUE);
+INSERT INTO CUSTOMERS VALUES 
+('DTNB0101010000001', 'John', 'Doe', '1990-01-01', 'john@example.com', '123 Main St', '+84 901238881', 'Male', 'ID123456789');
+-- Saving Account
+INSERT INTO CUSTOMER_ACCOUNTS VALUES ('DTNBS25000001', 'DTNB0101010000001', 'Active', NOW(), 'S');
+INSERT INTO SAVING_ACCOUNTS VALUES ('DTNBS25000001', 2, 200000);
+
+-- Checking Account
+INSERT INTO CUSTOMER_ACCOUNTS VALUES ('DTNBC25000002', 'DTNB0101010000001', 'Active', NOW(), 'C');
+INSERT INTO CHECK_ACCOUNTS VALUES ('DTNBC25000002', 500000, 1, 10000, 20000);
+
+
+-- Locked Account for testing
+INSERT INTO CUSTOMER_ACCOUNTS VALUES ('DTNBC25000003', 'DTNB0101010000001', 'Locked', NOW(), 'C');
+INSERT INTO CHECK_ACCOUNTS VALUES ('DTNBC25000003', 500000 ,1, 1000000, 100000000);
+-- INVALID AMOUNT
+INSERT INTO TRANSACTIONS VALUES ('TXN001', 'WDL', 'DTNBC25000002', NULL, 50900, 'Debit', NOW(), NOW(), 'Successful', NULL);
+INSERT INTO TRANSACTIONS VALUES ('TXN002', 'TRF', 'DTNBC25000002', 'DTNBC25000002', 10000, 'Debit', NOW(), NOW(), 'Successful', NULL);
+INSERT INTO TRANSACTIONS VALUES ('TXN003', 'TRF', 'DTNBC25000003', 'DTNBC25000002', 100000, 'Debit', NOW(), NOW(), 'Successful', NULL);
+INSERT INTO TRANSACTIONS VALUES ('TXN005', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 8000, 'Debit', NOW(), NOW(), 'Failed', 'BAL-001');
+INSERT INTO TRANSACTIONS VALUES ('TXN006', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 500000, 'Debit', NOW(), NOW(), 'Successful', NULL);
+
+select * from transactions;
+select * from failed_transactions;
+
+INSERT INTO CUSTOMER_ACCOUNTS VALUES ('DTNBC25000011', 'DTNB0101010000001', 'Active', NOW(), 'C');
+INSERT INTO CHECK_ACCOUNTS VALUES ('DTNBC25000011', 50000000 ,1, 100000, 1000000);
+INSERT INTO TRANSACTIONS VALUES ('TXN007', 'TRF', 'DTNBC25000011', 'DTNBS25000001', 500000, 'Debit', NOW(), NOW(), 'Successful', NULL);
+
+select * from check_accounts;
