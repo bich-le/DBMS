@@ -5,7 +5,11 @@ use main;
 
 
 
-
+CREATE TABLE IF NOT EXISTS BRANCHES (
+    branch_id VARCHAR(4) PRIMARY KEY, -- VD: HN, HCM
+    branch_name VARCHAR(100),
+    branch_address VARCHAR(255)
+);
 
 					-- CUSTOMER SYSTEM -----------------------------------
                     
@@ -19,7 +23,9 @@ CREATE TABLE IF NOT EXISTS CUSTOMERS (
     cus_address VARCHAR(100) , 
     cus_phone_num VARCHAR(15) UNIQUE, -- + [Mã quốc gia][Số còn lại] VD: +84 901238881
     cus_sex ENUM('Male', 'Female'),
-    cus_identification_id VARCHAR(20) UNIQUE
+    cus_identification_id VARCHAR(20) UNIQUE,
+    branch_id VARCHAR(4),
+    FOREIGN KEY (branch_id) REFERENCES BRANCHES(branch_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS CUSTOMER_ACCOUNT_TYPES (
@@ -136,12 +142,7 @@ CREATE TABLE TRANSACTIONS (
 
 
 					                    
-                    
-CREATE TABLE IF NOT EXISTS BRANCHES (
-    branch_id VARCHAR(4) PRIMARY KEY, -- VD: HN, HCM
-    branch_name VARCHAR(100),
-    branch_address VARCHAR(255)
-);
+                
 CREATE TABLE IF NOT EXISTS EMPLOYEE_POSITIONS( -- TẠO BẢNG EMPLOYEE_POSITIONS
 	emp_position_id VARCHAR(2) primary KEY, -- 'T', 'M', etc
     emp_position_name VARCHAR(15),
