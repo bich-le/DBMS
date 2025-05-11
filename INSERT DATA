@@ -127,3 +127,10 @@ VALUES
     ('Thin Client', FALSE, NULL, 'Used in highly secure environments (e.g., call centers or branch service counters).'),
     ('Mobile Device', TRUE, TRUE, 'Typically for notifications, approvals (e.g., 2FA or digital signatures by senior staff).'),
     ('Admin Console', FALSE, TRUE, 'Used by system admins or database administrators to manage internal systems.');
+INSERT INTO TRANSACTION_ERROR_CODES VALUES
+('VAL-001', 'INVALID AMOUNT', 'Invalid transaction amount', TRUE, TRUE, FALSE),
+('VAL-002', 'SAME ACCOUNT', 'Source and destination accounts are the same', TRUE, TRUE, FALSE),
+('VAL-003', 'FUTURE DATE', 'Transaction date is in the future', TRUE, TRUE, FALSE),
+('ACC-001', 'ACCOUNT LOCKED', 'The account has been locked', TRUE, FALSE, TRUE),
+('BAL-001', 'INSUFFICIENT BALANCE', 'Insufficient account balance', TRUE, TRUE, FALSE),
+('LIMIT-001', 'DAILY LIMIT EXCEEDED', 'Exceeded the daily transaction limit', TRUE, FALSE, TRUE);
