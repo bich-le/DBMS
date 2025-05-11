@@ -39,11 +39,23 @@ CREATE PROCEDURE add_customer(
     IN p_identification_id VARCHAR(20)
 )
 BEGIN
-    INSERT INTO Customers (
-        FirstName, LastName, Address, PhoneNumber, Gender, identification_id
-    ) VALUES (
-        p_FirstName, p_LastName, p_Address, p_PhoneNumber, p_Gender, p_identification_id
-    );
+    DECLARE customer_count INT;
+    
+    -- Kiểm tra identification_id đã tồn tại chưa
+    SELECT COUNT(*) INTO customer_count 
+    FROM Customers 
+    WHERE identification_id = p_identification_id;
+    
+    IF customer_count > 0 THEN
+        SIGNAL SQLSTATE '45000' 
+        SET MESSAGE_TEXT = 'Identification ID already exists';
+    ELSE
+        INSERT INTO Customers (
+            FirstName, LastName, Address, PhoneNumber, Gender, identification_id
+        ) VALUES (
+            p_FirstName, p_LastName, p_Address, p_PhoneNumber, p_Gender, p_identification_id
+        );
+    END IF;
 END;
 //
 DELIMITER ;
@@ -205,7 +217,7 @@ ON SCHEDULE EVERY 1 MONTH
 DO
 BEGIN
     UPDATE SAVING_ACCOUNT sa
-    JOIN INTEREST_RATE ir ON sa.interest_rate_id = ir.interest_rate_id
+    JOIN INTEREST_RATE ir ON sa.rate_id = ir.interest_rate_id
     SET sa.saving_acc_balance = sa.saving_acc_balance + (sa.saving_acc_balance * ir.interest_rate_val)
     WHERE ir.status = 'Active';
 END;

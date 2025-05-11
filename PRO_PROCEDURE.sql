@@ -68,10 +68,11 @@ END;
 --  LƯU Ý QUAN TRỌNG:  KHÔNG THỂ thực hiện chính xác nếu không có thông tin về nhân viên thực hiện giao dịch trong bảng TRANSACTIONS.
 --  Giải pháp thay thế (KHÔNG chính xác hoàn toàn): Lấy giao dịch liên quan đến khách hàng mà nhân viên đó phục vụ (EMPLOYEE_CUSTOMER).
 
+DELIMITER //
 CREATE PROCEDURE sp_employee_transaction_report (
-    IN employee_id VARCHAR(11),
-    IN start_date DATE,
-    IN end_date DATE
+    IN p_employee_id VARCHAR(11),  -- Thêm tiền tố 'p_' để phân biệt với tên cột
+    IN p_start_date DATE,
+    IN p_end_date DATE
 )
 BEGIN
     SELECT
@@ -80,15 +81,19 @@ BEGIN
         t.transaction_amount,
         t.direction,
         t.customer_account_id,
-        tt.transaction_type_name
+        tt.transaction_type_name,
+        e.emp_fullname AS employee_name  -- Thêm tên nhân viên vào kết quả
     FROM TRANSACTIONS t
     JOIN CUSTOMER_ACCOUNT ca ON t.customer_account_id = ca.customer_account_id
     JOIN TRANSACTION_TYPE tt ON t.transaction_type_id = tt.transaction_type_id
     JOIN EMPLOYEE_CUSTOMER ec ON ca.customer_id = ec.customer_id
-    WHERE ec.emp_id = employee_id
-      AND t.transaction_time BETWEEN start_date AND end_date
+    JOIN EMPLOYEES e ON ec.emp_id = e.emp_id  -- JOIN thêm bảng EMPLOYEES để lấy tên
+    WHERE ec.emp_id = p_employee_id  -- Sửa thành so sánh emp_id với tham số đầu vào
+      AND (p_start_date IS NULL OR t.transaction_time >= p_start_date)
+      AND (p_end_date IS NULL OR t.transaction_time <= p_end_date)
     ORDER BY t.transaction_time DESC;
-END;
+END //
+DELIMITER ;
 
 --  4.  Báo cáo suspicion
 --  Mục tiêu: Lấy thông tin về các giao dịch bị nghi ngờ.
