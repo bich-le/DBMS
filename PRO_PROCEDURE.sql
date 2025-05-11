@@ -115,28 +115,36 @@ JOIN FRAUD_PATTERN fp ON s.fraud_pattern_id = fp.fraud_pattern_id
 JOIN TRANSACTIONS t ON s.transaction_id = t.transaction_id;
 
 --  Stored Procedure: sp_suspicion_report
-
+-- 4. Báo cáo suspicion (ĐÃ SỬA)
+DELIMITER //
 CREATE PROCEDURE sp_suspicion_report (
-    IN status ENUM('Unresolved', 'Investigating', 'Resolved', 'False_positive'),
-    IN from_date DATE,
-    IN to_date DATE
+    IN p_status ENUM('Unresolved', 'Investigating', 'Resolved', 'False_positive'),
+    IN p_from_date DATE,
+    IN p_to_date DATE
 )
 BEGIN
     SELECT
-        transaction_id,
-        detected_time,
-        severity_level,
-        suspicion_status,
-        fraud_pattern_name,
-        transaction_amount,
-        transaction_time,
-        customer_account_id
-    FROM vw_suspicion_details
-    WHERE (status IS NULL OR suspicion_status = status)
-      AND (from_date IS NULL OR detected_time >= from_date)
-      AND (to_date IS NULL OR detected_time <= to_date)
-    ORDER BY detected_time DESC;
-END;
+        s.transaction_id,
+        s.detected_time,
+        s.severity_level,
+        s.suspicion_status,
+        fp.fraud_pattern_name,
+        t.transaction_amount,
+        t.transaction_time,
+        t.customer_account_id,
+        c.cus_first_name,
+        c.cus_last_name
+    FROM SUSPICION s
+    JOIN FRAUD_PATTERN fp ON s.fraud_pattern_id = fp.fraud_pattern_id
+    JOIN TRANSACTIONS t ON s.transaction_id = t.transaction_id
+    JOIN CUSTOMER_ACCOUNT ca ON t.customer_account_id = ca.customer_account_id
+    JOIN CUSTOMERS c ON ca.customer_id = c.customer_id
+    WHERE (p_status IS NULL OR s.suspicion_status = p_status)
+      AND (p_from_date IS NULL OR s.detected_time >= p_from_date)
+      AND (p_to_date IS NULL OR s.detected_time <= p_to_date)
+    ORDER BY s.detected_time DESC;
+END //
+DELIMITER ;
 
 --  5.  Lịch sử system activity
 --  Mục tiêu: Lấy lịch sử hoạt động của hệ thống.
@@ -163,35 +171,37 @@ LEFT JOIN DEVICE d ON sah.device_id = d.device_id
 LEFT JOIN SYSTEM_ACTIVITY_CATEGORIES sac ON sah.activity_category_id = sac.activity_category_id;
 
 --  Stored Procedure: sp_system_activity_log
-
+DELIMITER //
 CREATE PROCEDURE sp_system_activity_log (
-    IN branch_id VARCHAR(4),
-    IN employee_id VARCHAR(11),
-    IN activity_category VARCHAR(30),
-    IN from_date DATETIME,
-    IN to_date DATETIME
+    IN p_branch_id VARCHAR(4),
+    IN p_employee_id VARCHAR(11),
+    IN p_activity_category VARCHAR(30),
+    IN p_from_date DATETIME,
+    IN p_to_date DATETIME
 )
 BEGIN
     SELECT
-        activity_id,
-        activity_time,
-        description,
-        sys_activity_status,
-        emp_fullname,
-        branch_name,
-        device_name,
-        activity_category_name,
-        old_value,
-        new_value,
-        objective_id
-    FROM vw_system_activity_details
-    WHERE (branch_id IS NULL OR branch_name = branch_id)
-      AND (employee_id IS NULL OR emp_fullname = employee_id)
-      AND (activity_category IS NULL OR activity_category_name = activity_category)
-      AND (from_date IS NULL OR activity_time >= from_date)
-      AND (to_date IS NULL OR activity_time <= to_date)
-    ORDER BY activity_time DESC;
-END;
+        sah.activity_id,
+        sah.activity_time,
+        sah.description,
+        sah.sys_activity_status,
+        e.emp_fullname,
+        b.branch_name,
+        d.device_name,
+        sac.activity_category_name
+    FROM SYSTEM_ACTIVITIES_HISTORY sah
+    LEFT JOIN EMPLOYEES e ON sah.emp_id = e.emp_id
+    LEFT JOIN BRANCH b ON e.branch_id = b.branch_id
+    LEFT JOIN DEVICE d ON sah.device_id = d.device_id
+    LEFT JOIN SYSTEM_ACTIVITY_CATEGORIES sac ON sah.activity_category_id = sac.activity_category_id
+    WHERE (p_branch_id IS NULL OR b.branch_id = p_branch_id)
+      AND (p_employee_id IS NULL OR e.emp_id = p_employee_id)
+      AND (p_activity_category IS NULL OR sac.activity_category_name = p_activity_category)
+      AND (p_from_date IS NULL OR sah.activity_time >= p_from_date)
+      AND (p_to_date IS NULL OR sah.activity_time <= p_to_date)
+    ORDER BY sah.activity_time DESC;
+END //
+DELIMITER ;
 
 --  6.  Lịch sử thay đổi lãi suất
 --  Mục tiêu: Lấy lịch sử thay đổi của lãi suất.
@@ -250,9 +260,10 @@ END;
 --  Bảng liên quan: CUSTOMER_ACCOUNT, BRANCH, SAVING_ACCOUNT, CURRENT_ACCOUNT, FIXED_DEPOSIT_ACCOUNT
 --  Stored Procedure: sp_account_summary_report
 
+DELIMITER //
 CREATE PROCEDURE sp_account_summary_report (
-    IN branch_id VARCHAR(4),
-    IN account_type ENUM('Saving', 'Current', 'Fixed')
+    IN p_branch_id VARCHAR(4),
+    IN p_account_type ENUM('Saving', 'Current', 'Fixed')
 )
 BEGIN
     SELECT
@@ -272,7 +283,8 @@ BEGIN
     LEFT JOIN SAVING_ACCOUNT sa ON ca.customer_account_id = sa.customer_account_id
     LEFT JOIN CURRENT_ACCOUNT cur ON ca.customer_account_id = cur.customer_account_id
     LEFT JOIN FIXED_DEPOSIT_ACCOUNT fda ON ca.customer_account_id = fda.customer_account_id
-    WHERE b.branch_id = branch_id
-      AND ca.cus_account_type = account_type
+    WHERE (p_branch_id IS NULL OR b.branch_id = p_branch_id)
+      AND (p_account_type IS NULL OR ca.cus_account_type = p_account_type)
     GROUP BY b.branch_name, ca.cus_account_type;
-END;
+END //
+DELIMITER ;
