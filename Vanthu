@@ -227,20 +227,113 @@ BEGIN
     END IF;
 END//
 DELIMITER ;
--- CHeck transaction_time ko ở trong tương lai và 2 tk đầu vào và ra không trùng nhau ------------------------------------
-CREATE TRIGGER validate_transaction BEFORE INSERT ON TRANSACTIONS
-FOR EACH ROW 
+CREATE TRIGGER validate_transaction_before_insert
+BEFORE INSERT ON TRANSACTIONS
+FOR EACH ROW
 BEGIN
-    -- Kiểm tra tài khoản nguồn ≠ tài khoản đích
-    IF NEW.related_cus_account_id = NEW.cus_account_id THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Invalid transaction';
+    DECLARE v_account_status VARCHAR(20);
+    DECLARE v_balance BIGINT;
+    DECLARE v_daily_total DECIMAL(18,2);
+    DECLARE v_daily_limit DECIMAL(18,2);
+    DECLARE v_transaction_limit int;
+    
+    -- Check for same source and destination accounts
+    IF NEW.trans_type_id = 'TRF' AND NEW.related_cus_account_id = NEW.cus_account_id THEN
+        SET NEW.trans_status = 'Failed';
+        SET NEW.trans_error_code = 'VAL-001';
+        -- SIGNAL SQLSTATE '45001' SET MESSAGE_TEXT = 'Cannot transfer to the same account';
     END IF;
     
-    -- Kiểm tra ngày giao dịch không trong tương lai
-    IF NEW.transaction_time > NOW() THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Future date not allowed';
+    -- Check account status
+    SELECT cus_account_status INTO v_account_status 
+    FROM CUSTOMER_ACCOUNTS 
+    WHERE cus_account_id = NEW.cus_account_id;
+    
+    IF v_account_status != 'Active' THEN
+        SET NEW.trans_status = 'Failed';
+        SET NEW.trans_error_code = 'ACC-001';
+        -- SIGNAL SQLSTATE '45003' SET MESSAGE_TEXT = 'Account is not active';
+    END IF;
+    
+    -- Check balance for Debit transactions
+    IF NEW.direction = 'Debit' THEN
+        SELECT 
+            CASE 
+                WHEN ca.cus_account_type_id = 'S' THEN sa.saving_acc_balance
+                WHEN ca.cus_account_type_id = 'C' THEN ca2.check_acc_balance
+                ELSE 0
+            END INTO v_balance
+        FROM CUSTOMER_ACCOUNTS ca
+        LEFT JOIN SAVING_ACCOUNTS sa ON ca.cus_account_id = sa.cus_account_id
+        LEFT JOIN CHECK_ACCOUNTS ca2 ON ca.cus_account_id = ca2.cus_account_id
+        WHERE ca.cus_account_id = NEW.cus_account_id;
+        
+        IF v_balance < NEW.trans_amount THEN
+            SET NEW.trans_status = 'Failed';
+            SET NEW.trans_error_code = 'BAL-001';
+            -- SIGNAL SQLSTATE '45004' SET MESSAGE_TEXT = 'Insufficient balance'; 
+        END IF;
+    END IF;
+    
+         -- Lấy giới hạn từng giao dịch
+        SELECT transfer_limit INTO v_transaction_limit
+        FROM CHECK_ACCOUNTS
+        WHERE cus_account_id = NEW.cus_account_id;
+
+        IF NEW.trans_amount > v_transaction_limit THEN
+            SET NEW.trans_status = 'Failed';
+            SET NEW.trans_error_code = 'LIMIT-002';
+        END IF;
+    -- Kiểm tra hạn mức giao dịch trong ngày nếu là chuyển tiền Debit
+    
+    IF NEW.trans_type_id = 'TRF' AND NEW.direction = 'Debit' THEN
+        -- Tổng số tiền đã chuyển trong ngày (chỉ tính giao dịch thành công)
+        SELECT COALESCE(SUM(trans_amount), 0) INTO v_daily_total
+        FROM TRANSACTIONS
+        WHERE cus_account_id = NEW.cus_account_id
+        AND DATE(trans_time) = DATE(NEW.trans_time)
+        AND direction = 'Debit'
+        AND trans_status = 'Successful';
+
+        -- Lấy giới hạn ngày
+        SELECT daily_transfer_limit INTO v_daily_limit
+        FROM CHECK_ACCOUNTS
+        WHERE cus_account_id = NEW.cus_account_id;
+
+        IF (v_daily_total + NEW.trans_amount) > v_daily_limit THEN
+            SET NEW.trans_status = 'Failed';
+            SET NEW.trans_error_code = 'LIMIT-001';
+        END IF;
+
+
     END IF;
 END;
+//
+DELIMITER ;
 
--- 3. Thêm index hỗ trợ
-CREATE INDEX idx_transactions_account_time ON TRANSACTIONS(cus_account_id, transaction_time);
+-- Trigger sau khi giao dịch thất bại
+DELIMITER //
+CREATE TRIGGER after_transaction_failed
+AFTER INSERT ON TRANSACTIONS
+FOR EACH ROW
+BEGIN
+    IF NEW.trans_status = 'Failed' 
+    THEN
+        INSERT INTO FAILED_TRANSACTIONS (
+            trans_id,
+            cus_account_id,
+            trans_error_code,
+            trans_amount,
+            failure_reason,
+            attempted_time
+        ) VALUES (
+            NEW.trans_id,
+            NEW.cus_account_id,
+            NEW.trans_error_code,
+            NEW.trans_amount,
+            COALESCE((SELECT description FROM TRANSACTION_ERROR_CODES WHERE trans_error_code = NEW.trans_error_code), 'Unknown error'),
+            NEW.trans_time
+        );
+    END IF;
+END//
+DELIMITER ;
