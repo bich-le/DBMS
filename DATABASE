@@ -187,6 +187,7 @@ CREATE TABLE EMPLOYEE_ACCOUNTS (
     password_hash VARCHAR(255) NOT NULL,                   -- Hashed password (never store plaintext passwords)
     status ENUM('Active', 'Inactive', 'Temporarily Suspended', 'Permanently Suspended') DEFAULT 'Active',  
     suspension_time DATETIME NULL,
+    reactivation_time DATETIME NULL
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,         
     
     FOREIGN KEY (emp_id) REFERENCES EMPLOYEEs(emp_id) ON DELETE CASCADE  
