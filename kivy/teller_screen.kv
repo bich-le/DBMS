@@ -66,7 +66,7 @@
                     MDScrollView:
                         MDList:
                             OneLineListItem:
-                                text: "Lịch sử giao dịch của chi nhánh"
+                                text: "Branch Transaction History"
                                 on_release:
                                     app.root.get_screen("teller").call_report_procedure("sp_branch_transaction_history", app.db_cursor)
                                 left_icon: "history" # Chọn icon phù hợp
@@ -74,21 +74,21 @@
                              
 
                             OneLineListItem:
-                                text: "Báo cáo tình nghi giao dịch"
+                                text: "Suspicious Transactions"
                                 on_release:
                                     app.root.get_screen("teller").call_report_procedure("sp_suspicious_transactions", app.db_cursor)
                                 left_icon: "alert-octagon" # Chọn icon phù hợp
                             
 
                             OneLineListItem:
-                                text: "Lịch sử hoạt động hệ thống"
+                                text: "System Activity Log"
                                 on_release:
                                     app.root.get_screen("teller").call_report_procedure("sp_system_activity_log", app.db_cursor)
                                 left_icon: "cog" # Chọn icon phù hợp
              
 
                             OneLineListItem:
-                                text: "Tổng hợp tài khoản"
+                                text: "Account Summary"
                                 on_release:
                                     app.root.get_screen("teller").call_report_procedure("sp_account_summary", app.db_cursor)
                                 left_icon: "file-document-multiple-outline" # Chọn icon phù hợp
