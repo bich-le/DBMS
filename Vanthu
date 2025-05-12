@@ -390,3 +390,52 @@ BEGIN
 END $$
 
 DELIMITER ;
+DELIMITER //
+
+CREATE TRIGGER update_balances_after_transaction
+AFTER INSERT ON TRANSACTIONS
+FOR EACH ROW
+BEGIN
+    DECLARE account_type VARCHAR(2);
+    
+    -- Chỉ xử lý khi giao dịch thành công
+    IF NEW.trans_status = 'Successful' THEN
+        -- Lấy loại tài khoản
+        SELECT cus_account_type_id INTO account_type
+        FROM CUSTOMER_ACCOUNTS
+        WHERE cus_account_id = NEW.cus_account_id;
+        
+        -- Xử lý trừ tiền từ tài khoản nguồn (Debit)
+        IF NEW.direction = 'Debit' THEN
+            IF account_type = 'C' THEN -- Check account
+                UPDATE CHECK_ACCOUNTS
+                SET check_acc_balance = check_acc_balance - NEW.trans_amount
+                WHERE cus_account_id = NEW.cus_account_id;
+            ELSEIF account_type = 'S' THEN -- Saving account
+                UPDATE SAVING_ACCOUNTS
+                SET saving_acc_balance = saving_acc_balance - NEW.trans_amount
+                WHERE cus_account_id = NEW.cus_account_id;
+            END IF;
+        END IF;
+        
+        -- Xử lý cộng tiền vào tài khoản đích (nếu có và là Credit)
+        -- IF NEW.related_cus_account_id IS NOT NULL AND NEW.direction = 'Credit' THEN
+        IF NEW.related_cus_account_id IS NOT NULL THEN
+            SELECT cus_account_type_id INTO account_type
+            FROM CUSTOMER_ACCOUNTS
+            WHERE cus_account_id = NEW.related_cus_account_id;
+            
+            IF account_type = 'C' THEN -- Check account
+                UPDATE CHECK_ACCOUNTS
+                SET check_acc_balance = check_acc_balance + NEW.trans_amount
+                WHERE cus_account_id = NEW.related_cus_account_id;
+            ELSEIF account_type = 'S' THEN -- Saving account
+                UPDATE SAVING_ACCOUNTS
+                SET saving_acc_balance = saving_acc_balance + NEW.trans_amount
+                WHERE cus_account_id = NEW.related_cus_account_id;
+            END IF;
+        END IF;
+    END IF;
+END //
+
+DELIMITER ;
