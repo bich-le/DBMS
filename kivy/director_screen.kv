@@ -14,17 +14,63 @@
                     MDLabel:
                         text: "Customer management content"
                         halign: "center"
-
+            # Màn hình Employees
             MDScreen:
                 name: "employees"
                 MDBoxLayout:
                     orientation: "vertical"
+                    spacing: "10dp"
+                    padding: "10dp"
+
+                    # Thanh công cụ
                     MDTopAppBar:
-                        title: "Employee Management"
+                        title: "Quản lý nhân viên"
                         left_action_items: [["menu", lambda x: nav_drawer.set_state("open")]]
-                    MDLabel:
-                        text: "Employee management content"
-                        halign: "center"
+                        right_action_items: [["refresh", lambda x: root.refresh_employees()]]
+                        elevation: 10
+
+                    # Ô tìm kiếm và nút thêm mới
+                    MDBoxLayout:
+                        size_hint_y: None
+                        height: "60dp"
+                        spacing: "10dp"
+                        padding: "0dp", "10dp", "0dp", "10dp"
+
+                        MDTextField:
+                            id: search_field
+                            hint_text: "Tìm theo tên hoặc ID..."
+                            mode: "fill"
+                            size_hint_x: 0.7
+                            icon_right: "magnify"
+                            on_text: root.search_employees(self.text)
+
+                        MDRoundFlatIconButton:
+                            icon: "account-plus"
+                            text: "Thêm mới"
+                            size_hint_x: 0.3
+                            on_release: root.show_add_employee_dialog()
+
+                    # Bảng dữ liệu
+                    ScrollView:
+                        bar_width: 8
+                        bar_color: app.theme_cls.primary_color
+                        MDBoxLayout:
+                            id: table_container
+                            orientation: "vertical"
+                            size_hint_y: None
+                            height: self.minimum_height
+                            padding: "10dp"
+
+                            # Label tạm thời (sẽ bị thay thế bằng bảng)
+                            MDLabel:
+                                id: placeholder
+                                text: "Đang tải dữ liệu..."
+                                halign: "center"
+                                font_style: "H6"
+                                size_hint_y: None
+                                height: "300dp"
+
+
 
             MDScreen:
                 name: "transactions"
