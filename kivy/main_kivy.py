@@ -51,6 +51,8 @@ class MainScreen(MDScreen):
         if result:
             status = result['status']
             position = result['emp_position']
+            app.current_role = position.lower()
+
 
             if status == 'Active':
                 app.root.transition.direction = "left"

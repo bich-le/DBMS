@@ -66,9 +66,9 @@
                     MDTopAppBar:
                         title: "Reports"
                         left_action_items: [["menu", lambda x: nav_drawer.set_state("open")]]
-                    MDLabel:
-                        text: "Reports content"
-                        halign: "center"
+                    ReportBox:
+                        id: report_box
+                       
 
             MDScreen:
                 name: "system"

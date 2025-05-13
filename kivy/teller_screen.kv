@@ -53,46 +53,14 @@
                         halign: "center"
 
             MDScreen:
-                name: "reports"
+                name: "report"
                 MDBoxLayout:
                     orientation: "vertical"
-
                     MDTopAppBar:
                         title: "Reports"
                         left_action_items: [["menu", lambda x: nav_drawer.set_state("open")]]
-                        elevation: 4
-                        adaptive_height: True # Để chiều cao tự động điều chỉnh
-
-                    MDScrollView:
-                        MDList:
-                            OneLineListItem:
-                                text: "Branch Transaction History"
-                                on_release:
-                                    app.root.get_screen("teller").call_report_procedure("sp_branch_transaction_history", app.db_cursor)
-                                left_icon: "history" # Chọn icon phù hợp
-                    
-                             
-
-                            OneLineListItem:
-                                text: "Suspicious Transactions"
-                                on_release:
-                                    app.root.get_screen("teller").call_report_procedure("sp_suspicious_transactions", app.db_cursor)
-                                left_icon: "alert-octagon" # Chọn icon phù hợp
-                            
-
-                            OneLineListItem:
-                                text: "System Activity Log"
-                                on_release:
-                                    app.root.get_screen("teller").call_report_procedure("sp_system_activity_log", app.db_cursor)
-                                left_icon: "cog" # Chọn icon phù hợp
-             
-
-                            OneLineListItem:
-                                text: "Account Summary"
-                                on_release:
-                                    app.root.get_screen("teller").call_report_procedure("sp_account_summary", app.db_cursor)
-                                left_icon: "file-document-multiple-outline" # Chọn icon phù hợp
-                           
+                    ReportBox:
+                        id: report_box
 
             MDScreen:
                 name: "suspicion"
@@ -161,7 +129,7 @@
                     icon: "file-chart"
                     text: "Reports"
                     on_release:
-                        screen_manager.current = "reports"
+                        screen_manager.current = "report"
                         nav_drawer.set_state("close")
 
                 DrawerItem:
