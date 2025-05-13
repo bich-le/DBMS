@@ -845,7 +845,8 @@ BEGIN
         FROM SUSPICIONS s
         JOIN TRANSACTIONS t ON s.trans_id = t.trans_id
         WHERE t.cus_account_id = p_account_id
-        AND s.suspicion_status != 'False_positive';
+        AND s.suspicion_status != 'False_positive'
+        AND s.suspicion_status != 'Resolved';
 
         -- Khóa tài khoản nếu có >=3 High severity
         IF high_severity_count >= 6 THEN
