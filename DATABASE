@@ -274,7 +274,7 @@ CREATE TABLE SUSPICIONS (
     trans_id VARCHAR(18) ,
     fraud_pattern_id INT,
     detected_time DATETIME,
-    severity_level VARCHAR(50) NOT NULL,
+    severity_level enum('Low', 'Medium', 'High') NOT NULL,
     suspicion_status ENUM('Unresolved', 'Investigating', 'Resolved', 'False_positive') DEFAULT 'Unresolved',
     
 	PRIMARY KEY(trans_id, fraud_pattern_id, detected_time),
