@@ -1,58 +1,5 @@
 -- UPDATE TABLES --------------------------------------------------------------------------------------------------
 
-
--- Record a Transaction
-              DELIMITER //
-              CREATE PROCEDURE RecordTransaction(
-                  IN p_transaction_id VARCHAR(18),
-                  IN p_transaction_type_id VARCHAR(3),
-                  IN p_account_id VARCHAR(17),
-                  IN p_amount INT,
-                  IN p_direction ENUM('Debit', 'Credit'),
-                  IN p_related_account_id VARCHAR(17),
-                  IN p_status ENUM('Successful', 'Failed')
-              )
-              BEGIN
-                  INSERT INTO TRANSACTIONS (
-                      transaction_id, transaction_type_id, customer_account_id,
-                      amount, direction, related_customer_account_id,
-                      transaction_status
-                  )
-                  VALUES (
-                      p_transaction_id, p_transaction_type_id, p_account_id,
-                      p_amount, p_direction, p_related_account_id,
-                      p_status
-                  );
-              END //
-              DELIMITER ;
-
--- Log System Activity 
-              DELIMITER //
-              CREATE PROCEDURE LogSystemActivity(
-                  IN p_category_id INT,
-                  IN p_time DATETIME,
-                  IN p_emp_id VARCHAR(11),
-                  IN p_device_id INT,
-                  IN p_objective_id VARCHAR(20),
-                  IN p_old_value VARCHAR(15),
-                  IN p_new_value VARCHAR(15),
-                  IN p_description TEXT,
-                  IN p_status ENUM('Successful', 'Failed')
-              )
-              BEGIN
-                  INSERT INTO SYSTEM_ACTIVITIES_HISTORY (
-                      activity_category_id, activity_time, emp_id,
-                      device_id, objective_id, old_value,
-                      new_value, description, status
-                  )
-                  VALUES (
-                      p_category_id, p_time, p_emp_id,
-                      p_device_id, p_objective_id, p_old_value,
-                      p_new_value, p_description, p_status
-                  );
-              END //
-              DELIMITER ;
-
 -- Update Interest_rate Table:
               DELIMITER //
               CREATE PROCEDURE UpdateInterestRate (
@@ -869,3 +816,27 @@ END//
 DELIMITER ;
 
 SELECT * FROM customer_accounts;
+DELIMITER //
+
+CREATE TRIGGER prevent_transaction_if_inactive
+BEFORE INSERT ON TRANSACTIONS
+FOR EACH ROW
+BEGIN
+    DECLARE acc_status VARCHAR(20);
+    DECLARE err_msg TEXT;
+
+        -- Lấy trạng thái tài khoản
+        SELECT cus_account_status INTO acc_status
+        FROM CUSTOMER_ACCOUNTS
+        WHERE cus_account_id = NEW.cus_account_id;
+
+        -- Nếu không phải 'Active' thì tạo message rồi báo lỗi
+        IF acc_status != 'Active' THEN
+            SET err_msg = CONCAT('Transaction denied. Account status is: ', acc_status);
+            SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = err_msg;
+    END IF;
+END;
+//
+
+DELIMITER ;
