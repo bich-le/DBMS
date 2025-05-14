@@ -185,7 +185,9 @@ CREATE TABLE EMPLOYEE_ACCOUNTS (
     emp_id VARCHAR(11) PRIMARY KEY,                                      
     username VARCHAR(100) NOT NULL UNIQUE,                 
     password_hash VARCHAR(255) NOT NULL,                   -- Hashed password (never store plaintext passwords)
-    status ENUM('Active', 'Inactive', 'Suspended') DEFAULT 'Active',  
+    status ENUM('Active', 'Inactive', 'Temporarily Suspended', 'Permanently Suspended') DEFAULT 'Active',  
+    suspension_time DATETIME NULL,
+    reactivation_time DATETIME NULL
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,         
     
     FOREIGN KEY (emp_id) REFERENCES EMPLOYEEs(emp_id) ON DELETE CASCADE  
@@ -272,7 +274,7 @@ CREATE TABLE SUSPICIONS (
     trans_id VARCHAR(18) ,
     fraud_pattern_id INT,
     detected_time DATETIME,
-    severity_level VARCHAR(50) NOT NULL,
+    severity_level enum('Low', 'Medium', 'High') ,
     suspicion_status ENUM('Unresolved', 'Investigating', 'Resolved', 'False_positive') DEFAULT 'Unresolved',
     
 	PRIMARY KEY(trans_id, fraud_pattern_id, detected_time),

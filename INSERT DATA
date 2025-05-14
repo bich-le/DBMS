@@ -29,13 +29,14 @@ VALUES
 (5, 1, 'Executive Review', '2023-06-08'),
 (5, 3, 'Loan Approval', '2023-07-18');
 
+
 INSERT INTO EMPLOYEE_ACCOUNT (emp_id, username, password_hash, status)
 VALUES
-(1, 'alice', 'pass123', 'Active'),
-(2, 'bob', 'pass123', 'Active'),
-(3, 'charlie', 'pass123', 'Active'),
-(4, 'diana', 'pass123', 'Suspended'),
-(5, 'edward', 'pass123', 'Inactive');
+(1, 'alice', SHA2('123',256), 'Active'),
+(2, 'bob', SHA2('345',256), 'Active'),
+(3, 'charlie', SHA2('456',256), 'Active'),
+(4, 'diana', SHA2('678',256), 'Active'),
+(5, 'edward', SHA2('89',256), 'Active');
 
 # Báo cáo
 --  Thêm dữ liệu vào bảng REPORT

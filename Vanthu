@@ -1,58 +1,5 @@
 -- UPDATE TABLES --------------------------------------------------------------------------------------------------
 
-
--- Record a Transaction
-              DELIMITER //
-              CREATE PROCEDURE RecordTransaction(
-                  IN p_transaction_id VARCHAR(18),
-                  IN p_transaction_type_id VARCHAR(3),
-                  IN p_account_id VARCHAR(17),
-                  IN p_amount INT,
-                  IN p_direction ENUM('Debit', 'Credit'),
-                  IN p_related_account_id VARCHAR(17),
-                  IN p_status ENUM('Successful', 'Failed')
-              )
-              BEGIN
-                  INSERT INTO TRANSACTIONS (
-                      transaction_id, transaction_type_id, customer_account_id,
-                      amount, direction, related_customer_account_id,
-                      transaction_status
-                  )
-                  VALUES (
-                      p_transaction_id, p_transaction_type_id, p_account_id,
-                      p_amount, p_direction, p_related_account_id,
-                      p_status
-                  );
-              END //
-              DELIMITER ;
-
--- Log System Activity 
-              DELIMITER //
-              CREATE PROCEDURE LogSystemActivity(
-                  IN p_category_id INT,
-                  IN p_time DATETIME,
-                  IN p_emp_id VARCHAR(11),
-                  IN p_device_id INT,
-                  IN p_objective_id VARCHAR(20),
-                  IN p_old_value VARCHAR(15),
-                  IN p_new_value VARCHAR(15),
-                  IN p_description TEXT,
-                  IN p_status ENUM('Successful', 'Failed')
-              )
-              BEGIN
-                  INSERT INTO SYSTEM_ACTIVITIES_HISTORY (
-                      activity_category_id, activity_time, emp_id,
-                      device_id, objective_id, old_value,
-                      new_value, description, status
-                  )
-                  VALUES (
-                      p_category_id, p_time, p_emp_id,
-                      p_device_id, p_objective_id, p_old_value,
-                      p_new_value, p_description, p_status
-                  );
-              END //
-              DELIMITER ;
-
 -- Update Interest_rate Table:
               DELIMITER //
               CREATE PROCEDURE UpdateInterestRate (
@@ -388,5 +335,508 @@ BEGIN
         );
     END IF;
 END $$
+
+DELIMITER ;
+DELIMITER //
+
+CREATE TRIGGER update_balances_after_transaction
+AFTER INSERT ON TRANSACTIONS
+FOR EACH ROW
+BEGIN
+    DECLARE account_type VARCHAR(2);
+    
+    -- Chỉ xử lý khi giao dịch thành công
+    IF NEW.trans_status = 'Successful' THEN
+        -- Lấy loại tài khoản
+        SELECT cus_account_type_id INTO account_type
+        FROM CUSTOMER_ACCOUNTS
+        WHERE cus_account_id = NEW.cus_account_id;
+        
+        -- Xử lý trừ tiền từ tài khoản nguồn (Debit)
+        IF NEW.direction = 'Debit' THEN
+            IF account_type = 'C' THEN -- Check account
+                UPDATE CHECK_ACCOUNTS
+                SET check_acc_balance = check_acc_balance - NEW.trans_amount
+                WHERE cus_account_id = NEW.cus_account_id;
+            ELSEIF account_type = 'S' THEN -- Saving account
+                UPDATE SAVING_ACCOUNTS
+                SET saving_acc_balance = saving_acc_balance - NEW.trans_amount
+                WHERE cus_account_id = NEW.cus_account_id;
+            END IF;
+        END IF;
+        
+        -- Xử lý cộng tiền vào tài khoản đích (nếu có và là Credit)
+        -- IF NEW.related_cus_account_id IS NOT NULL AND NEW.direction = 'Credit' THEN
+        IF NEW.related_cus_account_id IS NOT NULL THEN
+            SELECT cus_account_type_id INTO account_type
+            FROM CUSTOMER_ACCOUNTS
+            WHERE cus_account_id = NEW.related_cus_account_id;
+            
+            IF account_type = 'C' THEN -- Check account
+                UPDATE CHECK_ACCOUNTS
+                SET check_acc_balance = check_acc_balance + NEW.trans_amount
+                WHERE cus_account_id = NEW.related_cus_account_id;
+            ELSEIF account_type = 'S' THEN -- Saving account
+                UPDATE SAVING_ACCOUNTS
+                SET saving_acc_balance = saving_acc_balance + NEW.trans_amount
+                WHERE cus_account_id = NEW.related_cus_account_id;
+            END IF;
+        END IF;
+    END IF;
+END //
+
+DELIMITER ;
+DELIMITER //
+
+CREATE PROCEDURE calculate_interest_for_accounts()
+BEGIN
+    DECLARE done INT DEFAULT FALSE;
+    DECLARE account_id VARCHAR(17);
+    DECLARE acc_type VARCHAR(2);
+    DECLARE balance BIGINT;
+    DECLARE rate DECIMAL(5,3);
+    DECLARE interest_amount DECIMAL(18,2);
+    DECLARE term_months INT;
+    
+    -- Cursor cho tài khoản tiết kiệm (S)
+    DECLARE saving_cursor CURSOR FOR 
+        SELECT sa.cus_account_id, sa.saving_acc_balance, ir.interest_rate_val
+        FROM SAVING_ACCOUNTS sa
+        JOIN CUSTOMER_ACCOUNTS ca ON sa.cus_account_id = ca.cus_account_id
+        JOIN INTEREST_RATES ir ON sa.interest_rate_id = ir.interest_rate_id
+        WHERE ir.cus_account_type_id = 'S'
+        AND ir.status = 'Active'
+        AND ca.cus_account_status = 'Active';
+    
+    -- Cursor cho tài khoản tiền gửi có kỳ hạn (F)
+    DECLARE fixed_cursor CURSOR FOR 
+        SELECT fd.cus_account_id, fd.deposit_amount, ir.interest_rate_val, ir.term
+        FROM FIXED_DEPOSIT_ACCOUNTS fd
+        JOIN CUSTOMER_ACCOUNTS ca ON fd.cus_account_id = ca.cus_account_id
+        JOIN INTEREST_RATES ir ON fd.interest_rate_id = ir.interest_rate_id
+        WHERE ir.cus_account_type_id = 'F'
+        AND ir.status = 'Active'
+        AND ca.cus_account_status = 'Active'
+        AND fd.maturity_date <= CURDATE();
+    
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+    
+    -- Xử lý tài khoản tiết kiệm (hàng tháng)
+    OPEN saving_cursor;
+    saving_loop: LOOP
+        FETCH saving_cursor INTO account_id, balance, rate;
+        IF done THEN
+            LEAVE saving_loop;
+        END IF;
+        
+        -- Tính lãi hàng tháng (lãi suất năm chia 12)
+        SET interest_amount = balance * (rate / 100 / 12);
+        
+        -- Cộng lãi vào tài khoản
+        UPDATE SAVING_ACCOUNTS
+        SET saving_acc_balance = saving_acc_balance + interest_amount
+        WHERE cus_account_id = account_id;
+        
+        -- Ghi nhận giao dịch lãi
+        INSERT INTO TRANSACTIONS (
+            trans_id,
+            trans_type_id,
+            cus_account_id,
+            trans_amount,
+            direction,
+            trans_status
+        ) VALUES (
+            CONCAT('INT', DATE_FORMAT(CURDATE(), '%y%m%d'), LPAD(account_id, 8, '0')),
+            'INT',
+            account_id,
+            interest_amount,
+            'Credit',
+            'Successful'
+        );
+    END LOOP;
+    CLOSE saving_cursor;
+    
+    SET done = FALSE;
+    
+    -- Xử lý tài khoản tiền gửi có kỳ hạn (khi đáo hạn)
+    OPEN fixed_cursor;
+    fixed_loop: LOOP
+        FETCH fixed_cursor INTO account_id, balance, rate, term_months;
+        IF done THEN
+            LEAVE fixed_loop;
+        END IF;
+        
+        -- Tính lãi theo kỳ hạn
+        SET interest_amount = balance * (rate / 100) * (term_months / 12);
+        
+        -- Cộng lãi và gốc vào tài khoản tiết kiệm (hoặc check account)
+        -- Giả sử chuyển vào tài khoản tiết kiệm cùng khách hàng
+        UPDATE SAVING_ACCOUNTS sa
+        JOIN CUSTOMER_ACCOUNTS ca ON sa.cus_account_id = (
+            SELECT cus_account_id FROM CUSTOMER_ACCOUNTS 
+            WHERE cus_id = (
+                SELECT cus_id FROM CUSTOMER_ACCOUNTS 
+                WHERE cus_account_id = account_id
+            )
+            AND cus_account_type_id = 'S'
+            LIMIT 1
+        )
+        SET sa.saving_acc_balance = sa.saving_acc_balance + balance + interest_amount;
+        
+        -- Ghi nhận giao dịch lãi và gốc
+        INSERT INTO TRANSACTIONS (
+            trans_id,
+            trans_type_id,
+            cus_account_id,
+            related_cus_account_id,
+            trans_amount,
+            direction,
+            trans_status
+        ) VALUES (
+            CONCAT('MAT', DATE_FORMAT(CURDATE(), '%y%m%d'), LPAD(account_id, 8, '0')),
+            'MAT',
+            account_id,
+            (SELECT cus_account_id FROM CUSTOMER_ACCOUNTS 
+             WHERE cus_id = (SELECT cus_id FROM CUSTOMER_ACCOUNTS WHERE cus_account_id = account_id)
+             AND cus_account_type_id = 'S' LIMIT 1),
+            balance + interest_amount,
+            'Credit',
+            'Successful'
+        );
+        
+        -- Đóng tài khoản tiền gửi có kỳ hạn
+        DELETE FROM FIXED_DEPOSIT_ACCOUNTS WHERE cus_account_id = account_id;
+        UPDATE CUSTOMER_ACCOUNTS SET cus_account_status = 'Locked' WHERE cus_account_id = account_id;
+    END LOOP;
+    CLOSE fixed_cursor;
+END //
+
+DELIMITER ;
+-- Bật event scheduler nếu chưa bật
+SET GLOBAL event_scheduler = ON;
+
+-- Tạo event tính lãi tự động chạy vào 00:00 ngày đầu tháng
+CREATE EVENT IF NOT EXISTS auto_calculate_interest
+ON SCHEDULE 
+    EVERY 1 MONTH
+    STARTS TIMESTAMP(DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-01 00:00:00'))
+DO
+    CALL calculate_interest_for_accounts();
+SET SQL_SAFE_UPDATES = 0;
+
+CREATE TABLE IF NOT EXISTS DEBUG_LOG (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    msg TEXT,
+    log_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+SELECT * FROM DEBUG_LOG;
+CREATE TABLE TEMP_SUSPICIONS (
+    trans_id VARCHAR(18),
+    fraud_pattern_id INT,
+    detected_time DATETIME,
+    severity_level ENUM('Low', 'Medium', 'High'),
+    processed BOOLEAN DEFAULT FALSE,
+    foreign key (trans_id) REFERENCES TRANSACTIONS(trans_id)
+);
+select * from suspicions;
+
+
+CREATE TABLE IF NOT EXISTS EVENT_LOG (
+    log_time DATETIME DEFAULT NOW(),
+    message TEXT
+);
+select * from suspicions;
+DELIMITER //
+CREATE EVENT move_temp_to_suspicions
+ON SCHEDULE EVERY 5 SECOND
+DO
+BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        INSERT INTO EVENT_LOG (message) VALUES (CONCAT('Error in move_temp_to_suspicions at ', NOW()));
+    END;
+    
+    START TRANSACTION;
+    
+    INSERT INTO SUSPICIONS (trans_id, fraud_pattern_id, detected_time, severity_level)
+    SELECT trans_id, fraud_pattern_id, detected_time, severity_level
+    FROM TEMP_SUSPICIONS
+    WHERE processed = FALSE; -- Optional limit for large datasets
+    
+    UPDATE TEMP_SUSPICIONS
+    SET processed = TRUE
+    WHERE processed = FALSE
+    AND trans_id IN (SELECT trans_id FROM SUSPICIONS WHERE detected_time >= DATE_SUB(NOW(), INTERVAL 1 MINUTE));
+    
+    INSERT INTO EVENT_LOG (message) VALUES (CONCAT('Event ran at ', NOW()));
+    
+    COMMIT;
+END//
+DELIMITER ;
+-- INSERT INTO SUSPICIONS (trans_id, fraud_pattern_id, detected_time, severity_level)
+-- SELECT trans_id, fraud_pattern_id, detected_time, severity_level
+-- FROM TEMP_SUSPICIONS
+-- WHERE processed = FALSE
+-- LIMIT 1000;
+select * from suspicions;
+
+-- Check if rows were inserted into SUSPICIONS
+SELECT COUNT(*) FROM SUSPICIONS;
+
+-- Check if TEMP_SUSPICIONS rows got marked as processed
+SELECT COUNT(*) FROM TEMP_SUSPICIONS WHERE processed = FALSE;
+
+SELECT * FROM EVENT_LOG ORDER BY log_time DESC;
+
+
+DELIMITER //
+CREATE TRIGGER detect_amount_spike
+AFTER INSERT ON TRANSACTIONS
+FOR EACH ROW
+BEGIN
+    DECLARE yearly_avg DECIMAL(20,2) DEFAULT 0;
+    DECLARE pattern_id INT DEFAULT NULL;
+    DECLARE recent_trans_count INT DEFAULT 0;
+    DECLARE recent_trans_total DECIMAL(20,2) DEFAULT 0;
+
+    -- Bắt đầu ghi log để debug
+    INSERT INTO DEBUG_LOG (msg) VALUES (CONCAT('Trigger fired for ', NEW.trans_id));
+
+    IF NEW.trans_status = 'Successful' THEN
+
+        SELECT fraud_pattern_id INTO pattern_id
+        FROM FRAUD_PATTERNS
+        WHERE fraud_pattern_name = 'Transaction Amount Spike'
+        LIMIT 1;
+
+        IF pattern_id IS NOT NULL THEN
+
+            SELECT IFNULL(AVG(trans_amount), 0) INTO yearly_avg
+            FROM TRANSACTIONS
+            WHERE cus_account_id = NEW.cus_account_id
+              AND trans_status = 'Successful'
+              AND trans_time >= DATE_SUB(NEW.trans_time, INTERVAL 1 YEAR);
+
+            SELECT COUNT(*), IFNULL(SUM(trans_amount), 0)
+            INTO recent_trans_count, recent_trans_total
+            FROM TRANSACTIONS
+            WHERE cus_account_id = NEW.cus_account_id
+              AND trans_status = 'Successful'
+              AND trans_time BETWEEN DATE_SUB(NEW.trans_time, INTERVAL 15 MINUTE) AND NEW.trans_time;
+
+            INSERT INTO DEBUG_LOG (msg) 
+            VALUES (
+                CONCAT('AVG=', yearly_avg, ', CNT=', recent_trans_count,  'TOTAL=', recent_trans_total, 'TRANS_TIME' , DATE_SUB(NEW.trans_time, INTERVAL 15 MINUTE))
+            );
+
+            IF yearly_avg > 0 AND recent_trans_count >= 5 AND recent_trans_total > (yearly_avg * 10) THEN
+                INSERT INTO TEMP_SUSPICIONS (trans_id, fraud_pattern_id, detected_time, severity_level)
+                VALUES (NEW.trans_id, pattern_id, NOW(), 'Low');
+
+                INSERT INTO DEBUG_LOG (msg) VALUES (CONCAT('Suspicion inserted for ', NEW.trans_id));
+
+            END IF;
+        ELSE
+            INSERT INTO DEBUG_LOG (msg) VALUES ('Pattern ID not found');
+        END IF;
+    ELSE
+        INSERT INTO DEBUG_LOG (msg) VALUES ('Transaction not successful');
+    END IF;
+END//
+
+DELIMITER ;
+
+
+DELIMITER ;
+-- Dormant acc activity trigger
+DELIMITER //
+
+CREATE TRIGGER detect_dormant_activity
+AFTER INSERT ON TRANSACTIONS
+FOR EACH ROW
+BEGIN
+    DECLARE last_trans_date DATETIME;
+    DECLARE pattern_id INT;
+    
+    -- Chỉ kiểm tra giao dịch thành công >= 50,000,000
+    IF NEW.trans_status = 'Successful' AND NEW.trans_amount >= 50000000 THEN
+        -- Lấy ID mẫu gian lận
+        SELECT fraud_pattern_id INTO pattern_id 
+        FROM FRAUD_PATTERNS 
+        WHERE fraud_pattern_name = 'Dormant Account Activity';
+        
+        -- Lấy ngày giao dịch cuối cùng
+        SELECT MAX(trans_time) INTO last_trans_date
+        FROM TRANSACTIONS
+        WHERE cus_account_id = NEW.cus_account_id
+        AND trans_id != NEW.trans_id
+        AND trans_status = 'Successful';
+        
+        -- Kiểm tra tài khoản không hoạt động >3 tháng
+        IF last_trans_date IS NOT NULL AND DATEDIFF(NEW.trans_time, last_trans_date) > 90 THEN
+            -- Thêm vào bảng SUSPICIONS với severity_level tạm thời
+            INSERT INTO TEMP_SUSPICIONS (trans_id, fraud_pattern_id, detected_time, severity_level)
+            VALUES (NEW.trans_id, pattern_id, NOW(), 'Low');
+            
+            -- Log thông tin vào DEBUG_LOG
+            INSERT INTO DEBUG_LOG (msg) 
+            VALUES (CONCAT('Suspicion detected for ', NEW.trans_id, ': Dormant Account Activity, Account: ', NEW.cus_account_id, ', Transaction Date: ', NEW.trans_time));
+        END IF;
+    END IF;
+END//
+DELIMITER ;
+
+CREATE TABLE SUSPICIONS_PENDING_UPDATE (
+    trans_id VARCHAR(18),
+    fraud_pattern_id INT,
+    detected_time DATETIME,
+    severity_level ENUM('Low', 'Medium', 'High'),
+    PRIMARY KEY (trans_id, fraud_pattern_id, detected_time)
+);
+-- *severity level update
+DELIMITER //
+
+CREATE TRIGGER update_severity_based_on_violations
+AFTER INSERT ON SUSPICIONS
+FOR EACH ROW
+BEGIN
+    DECLARE violation_count INT;
+    DECLARE account_id VARCHAR(17);
+    DECLARE new_severity ENUM('Low', 'Medium', 'High');
+
+    -- Lấy account ID liên quan
+    SELECT cus_account_id INTO account_id
+    FROM TRANSACTIONS
+    WHERE trans_id = NEW.trans_id;
+
+    -- Đếm số lần vi phạm (không tính False_positive)
+    SELECT COUNT(*) INTO violation_count
+    FROM SUSPICIONS s
+    JOIN TRANSACTIONS t ON s.trans_id = t.trans_id
+    WHERE t.cus_account_id = account_id
+    AND s.suspicion_status != 'False_positive'
+    AND s.fraud_pattern_id = NEW.fraud_pattern_id;
+
+    -- Xác định mức độ nghiêm trọng
+    SET new_severity = CASE
+        WHEN violation_count >= 3 THEN 'High'
+        WHEN violation_count = 2 THEN 'Medium'
+        ELSE 'Low'
+    END;
+
+    -- Gửi dữ liệu cập nhật sang bảng trung gian
+    INSERT INTO SUSPICIONS_PENDING_UPDATE (trans_id, fraud_pattern_id, detected_time, severity_level)
+    VALUES (NEW.trans_id, NEW.fraud_pattern_id, NEW.detected_time, new_severity)
+    ON DUPLICATE KEY UPDATE severity_level = VALUES(severity_level);
+
+    -- Gọi thủ tục khóa tài khoản nếu cần
+    CALL check_and_lock_account(account_id);
+END//
+
+DELIMITER ;
+DELIMITER //
+
+CREATE EVENT apply_pending_severity_updates
+ON SCHEDULE EVERY 5 SECOND
+DO
+BEGIN
+    START TRANSACTION;
+
+    -- Áp dụng cập nhật mức độ nghiêm trọng
+    UPDATE SUSPICIONS s
+    JOIN SUSPICIONS_PENDING_UPDATE spu
+    ON s.trans_id = spu.trans_id
+       AND s.fraud_pattern_id = spu.fraud_pattern_id
+       AND s.detected_time = spu.detected_time
+    SET s.severity_level = spu.severity_level;
+
+    -- Dọn bảng trung gian
+    DELETE FROM SUSPICIONS_PENDING_UPDATE;
+
+    COMMIT;
+END//
+
+DELIMITER ;
+-- =====================================
+########################################################
+CREATE TABLE DEBUG_LOG_2 (
+    log_id INT AUTO_INCREMENT PRIMARY KEY,
+    log_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    account_id VARCHAR(17),
+    current_status VARCHAR(20),
+    high_severity_count INT,
+    action_taken VARCHAR(100)
+);
+
+
+-- Lock account
+DELIMITER //
+CREATE PROCEDURE check_and_lock_account(IN p_account_id VARCHAR(17))
+BEGIN
+    DECLARE high_severity_count INT DEFAULT 0;
+    DECLARE current_status VARCHAR(20);
+    DECLARE action_msg VARCHAR(100);
+
+    -- Lấy trạng thái hiện tại
+    SELECT cus_account_status INTO current_status
+    FROM CUSTOMER_ACCOUNTS
+    WHERE cus_account_id = p_account_id;
+
+    -- Mặc định chưa có hành động
+    SET action_msg = 'No action taken';
+
+    -- Chỉ xử lý nếu tài khoản chưa bị khóa
+    IF current_status = 'Active' THEN
+        -- Đếm số nghi ngờ High severity (không tính False_positive)
+        SELECT COUNT(*) INTO high_severity_count
+        FROM SUSPICIONS s
+        JOIN TRANSACTIONS t ON s.trans_id = t.trans_id
+        WHERE t.cus_account_id = p_account_id
+        AND s.suspicion_status != 'False_positive'
+        AND s.suspicion_status != 'Resolved';
+
+        -- Khóa tài khoản nếu có >=3 High severity
+        IF high_severity_count >= 6 THEN
+            UPDATE CUSTOMER_ACCOUNTS
+            SET cus_account_status = 'Temporarily Locked'
+            WHERE cus_account_id = p_account_id;
+
+            SET action_msg = 'Account temporarily locked due to 3+ high severity suspicions';
+        ELSE
+            SET action_msg = 'Less than 3 high severity suspicions – no lock';
+        END IF;
+    ELSE
+        SET action_msg = CONCAT('No action – status is ', current_status);
+    END IF;
+
+    -- Ghi log vào DEBUG_LOG_2
+    INSERT INTO DEBUG_LOG_2 (account_id, current_status, high_severity_count, action_taken)
+    VALUES (p_account_id, current_status, high_severity_count, action_msg);
+END//
+DELIMITER ;
+
+SELECT * FROM customer_accounts;
+DELIMITER //
+
+CREATE TRIGGER prevent_transaction_if_inactive
+BEFORE INSERT ON TRANSACTIONS
+FOR EACH ROW
+BEGIN
+    DECLARE acc_status VARCHAR(20);
+    DECLARE err_msg TEXT;
+
+        -- Lấy trạng thái tài khoản
+        SELECT cus_account_status INTO acc_status
+        FROM CUSTOMER_ACCOUNTS
+        WHERE cus_account_id = NEW.cus_account_id;
+
+        -- Nếu không phải 'Active' thì tạo message rồi báo lỗi
+        IF acc_status != 'Active' THEN
+            SET err_msg = CONCAT('Transaction denied. Account status is: ', acc_status);
+            SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = err_msg;
+    END IF;
+END;
+//
 
 DELIMITER ;

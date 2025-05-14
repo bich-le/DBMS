@@ -1,3 +1,7 @@
+#:import OneLineListItem kivymd.uix.list.OneLineListItem
+#:import IconLeftWidget kivymd.uix.list.IconLeftWidget
+<ReportItem@MDRippleBehavior+OneLineListItem>:
+
 <TellerScreen>:
     on_enter: self.ids.screen_manager.current = "customers"
     MDNavigationLayout:
@@ -49,15 +53,14 @@
                         halign: "center"
 
             MDScreen:
-                name: "reports"
+                name: "report"
                 MDBoxLayout:
                     orientation: "vertical"
                     MDTopAppBar:
                         title: "Reports"
                         left_action_items: [["menu", lambda x: nav_drawer.set_state("open")]]
-                    MDLabel:
-                        text: "Reports content"
-                        halign: "center"
+                    ReportBox:
+                        id: report_box
 
             MDScreen:
                 name: "suspicion"
@@ -126,7 +129,7 @@
                     icon: "file-chart"
                     text: "Reports"
                     on_release:
-                        screen_manager.current = "reports"
+                        screen_manager.current = "report"
                         nav_drawer.set_state("close")
 
                 DrawerItem:

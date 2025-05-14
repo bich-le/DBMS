@@ -32,6 +32,7 @@ from teller_screen import TellerScreen
 from manager_screen import ManagerScreen
 from auditor_screen import AuditorScreen
 import mysql.connector
+import hashlib
 
 #Builder.load_file("director_screen.kv")
 
@@ -50,6 +51,8 @@ class MainScreen(MDScreen):
         if result:
             status = result['status']
             position = result['emp_position']
+            app.current_role = position.lower()
+
 
             if status == 'Active':
                 app.root.transition.direction = "left"
@@ -97,12 +100,15 @@ class MyApp(MDApp):
         sm.add_widget(AuditorScreen(name="auditor"))
         return sm
     
+    def hash_password(self,password):
+        return hashlib.sha256(password.encode()).hexdigest()
+    
     def verify_login_and_get_position(self, username, password):
         try:
             conn = mysql.connector.connect(
                 host="localhost",
-                user="bich",
-                password="1234",
+                user="dongiz",
+                password="@Dong442005",
                 database="PROJECT"
             )
             cursor = conn.cursor(dictionary=True)
@@ -112,7 +118,8 @@ class MyApp(MDApp):
                 JOIN EMPLOYEES e ON a.emp_id = e.emp_id
                 WHERE a.username = %s AND a.password_hash = %s 
             """
-            cursor.execute(query, (username, password))
+            hashed_password = self.hash_password(password)
+            cursor.execute(query, (username, hashed_password))
             result = cursor.fetchone()
             conn.close()
             return result  # sẽ trả về dict chứa emp_position và status nếu đúng
