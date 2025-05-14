@@ -1,0 +1,112 @@
+#####################################
+      CUSTOMER_ID
+#####################################
+DELIMITER $$
+
+CREATE TRIGGER trg_generate_customer_id
+BEFORE INSERT ON CUSTOMERS
+FOR EACH ROW
+BEGIN
+    DECLARE idx INT;
+    DECLARE yy CHAR(2);
+
+    -- Use cus_join_date year if given, otherwise use current date
+    SET yy = DATE_FORMAT(IFNULL(NEW.cus_join_date, CURRENT_TIMESTAMP), '%y');
+
+    -- Increase or initialize the index for (branch_id, year)
+    INSERT INTO CUSTOMERS_INDEX(branch_id, year, current_index)
+    VALUES (NEW.branch_id, yy, 1)
+    ON DUPLICATE KEY UPDATE current_index = current_index + 1;
+
+    -- Get the updated index
+    SELECT current_index INTO idx
+    FROM CUSTOMERS_INDEX
+    WHERE branch_id = NEW.branch_id AND year = yy;
+
+    -- Set the new customer ID
+    SET NEW.cus_ID = CONCAT('DTNB', NEW.branch_id, yy, LPAD(idx, 7, '0'));
+END$$
+
+DELIMITER ;
+#####################################
+      CUSTOMER_ACCOUNT_ID
+#####################################
+DELIMITER $$
+
+CREATE TRIGGER trg_generate_customer_account_id
+BEFORE INSERT ON CUSTOMER_ACCOUNTS
+FOR EACH ROW
+BEGIN
+    DECLARE idx INT;
+    DECLARE yy CHAR(2);
+
+    -- Ưu tiên opening_date nếu có, không thì lấy CURRENT_DATE
+    SET yy = IFNULL(DATE_FORMAT(NEW.opening_date, '%y'), DATE_FORMAT(CURRENT_DATE, '%y'));
+
+    INSERT INTO CUSTOMER_ACCOUNT_INDEX(cus_account_type_id, year, current_index)
+    VALUES (NEW.cus_account_type_id, yy, 1)
+    ON DUPLICATE KEY UPDATE current_index = current_index + 1;
+
+    -- Lấy chỉ số mới
+    SELECT current_index INTO idx
+    FROM CUSTOMER_ACCOUNT_INDEX
+    WHERE cus_account_type_id = NEW.cus_account_type_id AND year = yy;
+
+    -- Tạo mã tài khoản: DTNB + Loại + Năm + Số thứ tự
+    SET NEW.cus_account_id = CONCAT('DTNB', NEW.cus_account_type_id, yy, LPAD(idx, 7, '0'));
+END$$
+
+DELIMITER ;
+#####################################
+      EMPLOYEE_ID
+#####################################
+DELIMITER $$
+CREATE TRIGGER trg_generate_emp_id
+BEFORE INSERT ON EMPLOYEES
+FOR EACH ROW
+BEGIN
+    DECLARE idx INT;
+    DECLARE yy CHAR(2);
+	SET yy = IFNULL(DATE_FORMAT(NEW.emp_join_date, '%y'), DATE_FORMAT(CURRENT_DATE, '%y'));
+    
+    INSERT INTO EMPLOYEE_ACCOUNT_INDEX ( branch_id, emp_position_id, year, current_index)
+    VALUES (NEW.branch_id, NEW.emp_position_id, yy, 1)
+    ON DUPLICATE KEY UPDATE current_index = current_index + 1;
+
+    -- Lấy chỉ số mới sau khi cập nhật
+    SELECT current_index INTO idx
+    FROM EMPLOYEE_ACCOUNT_INDEX
+    WHERE branch_id = NEW.branch_id AND emp_position_id = NEW.emp_position_id AND year = yy;
+
+    -- Tạo customer_ID
+    SET NEW.emp_id = CONCAT(NEW.branch_id, NEW.emp_position_id,  yy, LPAD(idx, 4, '0'));
+END$$
+
+DELIMITER ;
+#####################################
+      TRANS_ID
+#####################################
+DELIMITER $$
+CREATE TRIGGER trg_generate_trans_id
+BEFORE INSERT ON TRANSACTIONS
+FOR EACH ROW
+BEGIN
+    DECLARE idx INT;
+    DECLARE yy CHAR(2);
+    SET yy = IFNULL(DATE_FORMAT(NEW.trans_time, '%y'), DATE_FORMAT(CURRENT_DATE, '%y'));
+
+    -- Tăng chỉ số cho branch + year hoặc thêm mới
+    INSERT INTO TRANSACTION_INDEX (trans_type_id, year_suffix, current_index)
+    VALUES (NEW.trans_type_id, yy, 1)
+    ON DUPLICATE KEY UPDATE current_index = current_index + 1;
+
+    -- Lấy chỉ số mới sau khi cập nhật
+    SELECT current_index INTO idx
+    FROM TRANSACTION_INDEX
+    WHERE trans_type_id= NEW.trans_type_id AND year_suffix = yy;
+
+    -- Tạo customer_ID
+    SET NEW.trans_id = CONCAT('DTNB', NEW.trans_type_id, yy, LPAD(idx, 7, '0'));
+END$$
+
+DELIMITER ;
