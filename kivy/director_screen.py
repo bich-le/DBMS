@@ -1,8 +1,8 @@
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.datatables import MDDataTable
-from kivy.metrics import dp
 from kivy.clock import Clock
 import mysql.connector
+from kivy.metrics import sp, dp
 
 class DirectorScreen(MDScreen):
     all_employees_data = []
@@ -68,20 +68,20 @@ class DirectorScreen(MDScreen):
         # Tạo bảng mới
         self.data_table = MDDataTable(
             size_hint=(1, None),
-            height=max(len(data) * dp(50), dp(300)),
+            height=max(len(data) * dp(50), dp(500)),
             column_data=[
                 ("ID", dp(30)),
-                ("Họ tên", dp(50)),
-                ("Chức vụ", dp(40)),
-                ("SĐT", dp(40)),
+                ("Fullname", dp(50)),
+                ("Position", dp(40)),
+                ("Phone number", dp(40)),
                 ("Email", dp(60)),
-                ("Ngày vào", dp(40)),
+                ("Hire Date", dp(40)),
             ],
             row_data=data,
             use_pagination=False,
-            background_color_header="#1e88e5",
-            background_color_cell="#e3f2fd",
-            background_color_selected_cell="#b3e5fc",
+            background_color_header="#f5f5f5",
+            background_color_cell="#ffffff",
+            background_color_selected_cell="#e0e0e0"
         )
         self.ids.table_container.add_widget(self.data_table)
         print("Đã hiển thị bảng dữ liệu")  # Debug
