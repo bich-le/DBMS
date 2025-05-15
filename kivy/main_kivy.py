@@ -26,6 +26,8 @@ from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDFlatButton
 from kivymd.uix.screen import MDScreen
 from kivy.lang import Builder
+from kivy.metrics import dp
+from kivymd.uix.datatables import MDDataTable
 
 from director_screen import DirectorScreen
 from teller_screen import TellerScreen

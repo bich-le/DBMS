@@ -12,6 +12,7 @@ from kivy.clock import Clock
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDFlatButton
 from kivymd.app import MDApp
+from kivymd.uix.datatables import MDDataTable
 
 from report_procedures import REPORT_PROCEDURE_MAP  
 
@@ -202,14 +203,14 @@ class TellerScreen(MDScreen):
                 raise ValueError("Account not found")
             
             details_text = f"""
-Loại tài khoản: {account_details['cus_account_type_name']}
-Trạng thái: {account_details['cus_account_status']}
-Số dư: {account_details['balance']:,} VND
-Ngày mở: {account_details['opening_date'].strftime('%d/%m/%Y') if account_details['opening_date'] else 'N/A'}
-"""
-            
+            Account Type: {account_details['cus_account_type_name']}
+            Account Status: {account_details['cus_account_status']}
+            Balance: {account_details['balance']:,} VND
+            Opening Date: {account_details['opening_date'].strftime('%d/%m/%Y') if account_details['opening_date'] else 'N/A'}
+            """
+                        
             if account_details['interest_rate_id']:
-                details_text += f"Lãi suất: {account_details['interest_rate_val']}%\n"
+                details_text += f"Interest rate: {account_details['interest_rate_val']}%\n"
                 
             # Additional info for specific account types
             if account_details['cus_account_type_id'] == '02':  # Check account
@@ -222,16 +223,16 @@ Ngày mở: {account_details['opening_date'].strftime('%d/%m/%Y') if account_det
                 check_details = self.cursor.fetchone()
                 if check_details:
                     details_text += f"""
-Hạn mức chuyển: {check_details['transfer_limit']:,} VND
-Hạn mức hàng ngày: {check_details['daily_transfer_limit']:,} VND
+Transfer Limit: {check_details['transfer_limit']:,} VND
+Daily Transfer Limit: {check_details['daily_transfer_limit']:,} VND
 """
             
             dialog = MDDialog(
-                title=f"Chi tiết tài khoản {account['cus_account_id']}",
+                title=f"Account Detail {account['cus_account_id']}",
                 text=details_text,
                 buttons=[
                     MDFlatButton(
-                        text="Đóng",
+                        text="Close",
                         on_release=lambda x: dialog.dismiss()
                     ),
                 ],
@@ -256,7 +257,89 @@ Hạn mức hàng ngày: {check_details['daily_transfer_limit']:,} VND
         ]
 
         dialog.open()
-    
+        
+    def show_customer_table(self):
+        try:
+            query = """
+            SELECT 
+                c.cus_id,
+                CONCAT(c.cus_first_name, ' ', c.cus_last_name) as customer_name,
+                c.cus_phone_num,
+                c.cus_email,
+                b.branch_name,
+                COUNT(ca.cus_account_id) as account_count,
+                GROUP_CONCAT(cat.cus_account_type_name SEPARATOR ', ') as account_types
+            FROM CUSTOMERS c
+            LEFT JOIN BRANCHES b ON c.branch_id = b.branch_id
+            LEFT JOIN CUSTOMER_ACCOUNTS ca ON c.cus_id = ca.cus_id
+            LEFT JOIN CUSTOMER_ACCOUNT_TYPES cat ON ca.cus_account_type_id = cat.cus_account_type_id
+            GROUP BY c.cus_id
+            """
+            
+            self.cursor.execute(query)
+            customers = self.cursor.fetchall()
+            
+            if not customers:
+                self.show_error_dialog("Không có dữ liệu khách hàng")
+                return
+            
+            # Tạo data table
+            data_table = MDDataTable(
+                use_pagination=True,
+                size_hint=(1, None),
+                height=dp(400),
+                column_data=[
+                    ("ID", dp(30)),
+                    ("Name", dp(40)),
+                    ("Phone Number", dp(30)),
+                    ("Email", dp(40)),
+                    ("Branch", dp(30)),
+                    ("Number of Accounts", dp(20)),
+                    ("Account Type", dp(40)),
+                ],
+                row_data=[
+                    (
+                        customer['cus_id'],
+                        customer['customer_name'],
+                        customer['cus_phone_num'],
+                        customer['cus_email'],
+                        customer['branch_name'],
+                        str(customer['account_count']),
+                        customer['account_types'],
+                    )
+                    for customer in customers
+                ],
+            )
+            
+            # Bọc trong layout
+            layout = MDBoxLayout(
+                orientation="vertical",
+                padding=dp(10),
+                spacing=dp(10),
+                adaptive_height=True,
+            )
+            layout.add_widget(data_table)
+            
+            
+            # Tạo dialog chứa data table
+            self.table_dialog = MDDialog(
+                title="Customer List",
+                type="custom",
+                content_cls=layout,
+                size_hint=(0.95, None),
+                height=dp(500),
+                buttons=[
+                    MDFlatButton(
+                        text="Close",
+                        on_release=lambda x: self.table_dialog.dismiss()
+                    )
+                ],
+            )
+            self.table_dialog.open()
+
+        except Exception as e:
+            print("Lỗi khi tải bảng khách hàng:", e)
+            self.show_error_dialog("Lỗi khi tải bảng khách hàng")
     def call_report_procedure(self, report_id, cursor):
         """
         Gọi stored procedure tương ứng với report_id
