@@ -88,10 +88,6 @@ class MainScreen(MDScreen):
         )
         self.dialog.open()
 
-class ManagerScreen(MDScreen): pass
-class AuditorScreen(MDScreen): pass
-#class DirectorScreen(MDScreen): pass
-
 class MyApp(MDApp):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -118,8 +114,8 @@ class MyApp(MDApp):
         try:
             conn = mysql.connector.connect(
                 host="localhost",
-                user="dong",
-                password="44444444",
+                user="root",
+                password="Bichthebest3805",
                 database="main"
             )
             cursor = conn.cursor(dictionary=True)
