@@ -48,9 +48,13 @@ DELIMITER ;
 --  Mục tiêu: Lấy lịch sử giao dịch cho một chi nhánh cụ thể.
 --  Bảng liên quan: TRANSACTIONS, CUSTOMER_ACCOUNT, TRANSACTION_TYPE, BRANCH
 --  Stored Procedure: sp_branch_transaction_report
+DROP PROCEDURE IF EXISTS sp_branch_transaction_report;
 DELIMITER $$
+
 CREATE PROCEDURE sp_branch_transaction_report (
-    IN p_branch_id VARCHAR(4)
+    IN p_branch_id VARCHAR(4),
+    IN p_date_from DATE,
+    IN p_date_to DATE
 )
 BEGIN
     SELECT
@@ -62,10 +66,12 @@ BEGIN
         trans_type_name
     FROM vw_transaction_details
     WHERE branch_id = p_branch_id
+      AND trans_time BETWEEN p_date_from AND p_date_to
     ORDER BY trans_time DESC;
 END$$
 
 DELIMITER ;
+
 
 --  3.  Báo cáo suspicion
 --  Mục tiêu: Lấy thông tin về các giao dịch bị nghi ngờ.
