@@ -159,54 +159,8 @@ CREATE TABLE IF NOT EXISTS TRANSACTION_INDEX (
     PRIMARY KEY (trans_type_id, year_suffix)
 );
 
-CREATE TABLE TRANSACTION_TYPES(
-    trans_type_id VARCHAR(3) PRIMARY KEY,
-    trans_type_name VARCHAR(30) NOT NULL,
-    description TEXT
-);
 
-CREATE TABLE TRANSACTION_ERROR_CODES (
-    trans_error_code VARCHAR(10) PRIMARY KEY,
-    trans_error_name VARCHAR(50) NOT NULL UNIQUE,
-    description TEXT NOT NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    can_retry BOOLEAN DEFAULT FALSE,
-    needs_human_review BOOLEAN DEFAULT FALSE
-);
-
-
-CREATE TABLE TRANSACTIONS (
-    trans_id VARCHAR(18) PRIMARY KEY, --  DTNB[transactin_type_id][2-digit year][7-digit index][day]
-    trans_type_id varchar(3),
-    cus_account_id VARCHAR(17) ,
-	related_cus_account_id VARCHAR(17) ,
-    trans_amount INT NOT NULL
-		CHECK (trans_amount >= 1000),
-	direction ENUM('Debit', 'Credit') NOT NULL,
-    trans_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-    last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    trans_status enum("Failed", "Successful") DEFAULT 'Successful',
-	trans_error_code VARCHAR(10),
-    
-	FOREIGN KEY (trans_error_code) REFERENCES TRANSACTION_ERROR_CODES(trans_error_code) ON DELETE SET NULL,
-	FOREIGN KEY (cus_account_id) REFERENCES CUSTOMER_ACCOUNTS(cus_account_id) ON DELETE SET NULL,
-   	FOREIGN KEY (related_cus_account_id) REFERENCES CUSTOMER_ACCOUNTS(cus_account_id) ON DELETE SET NULL,
-	FOREIGN KEY (trans_type_id) REFERENCES TRANSACTION_TYPES(trans_type_id) ON DELETE SET NULL
-	)	;
-
- CREATE TABLE FAILED_TRANSACTIONS (
-    trans_id VARCHAR(18) PRIMARY KEY,
-    cus_account_id VARCHAR(17),
-    trans_error_code VARCHAR(10) NOT NULL,
-    trans_amount INT unsigned NOT NULL,
-    failure_reason TEXT NOT NULL,
-    attempted_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-    
-    FOREIGN KEY (trans_error_code) REFERENCES TRANSACTION_ERROR_CODES(trans_error_code) ON DELETE CASCADE,
-	FOREIGN KEY (trans_id) REFERENCES TRANSACTIONS(trans_id) ON DELETE CASCADE, 
-    FOREIGN KEY (cus_account_id) REFERENCES CUSTOMER_ACCOUNTS(cus_account_id) ON DELETE CASCADE
-);
- INTERNAL SYSTEM --------------------------------------------
+ -- INTERNAL SYSTEM --------------------------------------------
                     
                     
 
@@ -385,7 +339,15 @@ CREATE TABLE IF NOT EXISTS DEBUG_LOG ( -- check bug procedure detect_amount_spik
     msg TEXT,
     log_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );                
-                
+CREATE TABLE DEBUG_LOG_2 ( -- check bug procedure check_and_lock_account
+    log_id INT AUTO_INCREMENT PRIMARY KEY,
+    log_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    account_id VARCHAR(17),
+    current_status VARCHAR(20),
+    high_severity_count INT,
+    action_taken VARCHAR(100)
+);
+
 					-- REPORT --------------------------------------------
                     
                     
