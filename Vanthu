@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS CUSTOMERS (
     cus_phone_num VARCHAR(15) UNIQUE,
     cus_sex ENUM('Male', 'Female'),
     cus_identification_id VARCHAR(20) UNIQUE,
+    cus_join_date DATETIME DEFAULT CURRENT_TIMESTAMP,
     branch_id VARCHAR(4),
     FOREIGN KEY (branch_id) REFERENCES BRANCHES(branch_id) ON DELETE SET NULL
 );
@@ -42,14 +43,19 @@ CREATE TABLE IF NOT EXISTS CUSTOMER_ACCOUNT_TYPES (
 CREATE TABLE IF NOT EXISTS CUSTOMER_ACCOUNTS (
     cus_account_id VARCHAR(17) primary key, -- DTNB[customer_account_type_id][2-digit year][7-digit index]
     cus_id VARCHAR(17),
-    cus_account_status ENUM('Active', 'Temporary Locked', 'Locked') DEFAULT 'Active', 
+    cus_account_status ENUM('Active', 'Temporarily Locked', 'Locked') DEFAULT 'Active', 
     opening_date DATETIME DEFAULT CURRENT_TIMESTAMP,
     cus_account_type_id VARCHAR(2) ,
     
     FOREIGN KEY (cus_id) REFERENCES CUSTOMERS(cus_id) on delete cascade,
     FOREIGN KEY (cus_account_type_id) REFERENCES CUSTOMER_ACCOUNT_TYPES(cus_account_type_id) on delete set null
 );
-
+CREATE TABLE IF NOT EXISTS CUSTOMER_ACCOUNT_INDEX (
+    cus_account_type_id VARCHAR(2),
+    year CHAR(2),
+    current_index INT DEFAULT 0,
+    PRIMARY KEY (cus_account_type_id, year)
+);
 CREATE TABLE IF NOT EXISTS INTEREST_RATES (
     interest_rate_id TINYINT auto_increment PRIMARY KEY,
     interest_rate_val DECIMAL(5,3) NOT NULL 
@@ -73,7 +79,8 @@ CREATE TABLE SAVING_ACCOUNTS(
 );
 CREATE TABLE CHECK_ACCOUNTS(
     cus_account_id VARCHAR(17) primary key,
-    check_acc_balance bigint unsigned not null,
+  --   check_acc_balance bigint unsigned not null,
+	check_acc_balance bigint not null,
     interest_rate_id TINYint,
     transfer_limit int unsigned default 100000000
 		CHECK (transfer_limit <= 100000000) ,
@@ -187,7 +194,6 @@ CREATE TABLE TRANSACTIONS (
     
 	FOREIGN KEY (trans_error_code) REFERENCES TRANSACTION_ERROR_CODES(trans_error_code) ON DELETE SET NULL,
 	FOREIGN KEY (cus_account_id) REFERENCES CUSTOMER_ACCOUNTS(cus_account_id) ON DELETE SET NULL,
-   	FOREIGN KEY (related_cus_account_id) REFERENCES CUSTOMER_ACCOUNTS(cus_account_id) ON DELETE SET NULL,
 	FOREIGN KEY (trans_type_id) REFERENCES TRANSACTION_TYPES(trans_type_id) ON DELETE SET NULL
 	)	;
 
@@ -203,6 +209,13 @@ CREATE TABLE TRANSACTIONS (
 	FOREIGN KEY (trans_id) REFERENCES TRANSACTIONS(trans_id) ON DELETE CASCADE, 
     FOREIGN KEY (cus_account_id) REFERENCES CUSTOMER_ACCOUNTS(cus_account_id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS TRANSACTION_INDEX (
+    trans_type_id VARCHAR(3),
+    year_suffix CHAR(2),
+    current_index INT DEFAULT 0,
+    PRIMARY KEY (trans_type_id, year_suffix)
+);
 DELIMITER //
 
 CREATE TRIGGER validate_transaction_before_insert
@@ -211,27 +224,13 @@ FOR EACH ROW
 BEGIN
     DECLARE v_account_status VARCHAR(20);
     DECLARE v_balance BIGINT;
+    DECLARE v_dest_account_status VARCHAR(20);
     DECLARE v_daily_total DECIMAL(18,2);
     DECLARE v_daily_limit DECIMAL(18,2);
     DECLARE v_transaction_limit int;
     
-    -- Check for same source and destination accounts
-    IF NEW.trans_type_id = 'TRF' AND NEW.related_cus_account_id = NEW.cus_account_id THEN
-        SET NEW.trans_status = 'Failed';
-        SET NEW.trans_error_code = 'VAL-001';
-        -- SIGNAL SQLSTATE '45001' SET MESSAGE_TEXT = 'Cannot transfer to the same account';
-    END IF;
-    
-    -- Check account status
-    SELECT cus_account_status INTO v_account_status 
-    FROM CUSTOMER_ACCOUNTS 
-    WHERE cus_account_id = NEW.cus_account_id;
-    
-    IF v_account_status != 'Active' THEN
-        SET NEW.trans_status = 'Failed';
-        SET NEW.trans_error_code = 'ACC-001';
-        -- SIGNAL SQLSTATE '45003' SET MESSAGE_TEXT = 'Account is not active';
-    END IF;
+ 
+
     
     -- Check balance for Debit transactions
     IF NEW.direction = 'Debit' THEN
@@ -252,19 +251,7 @@ BEGIN
             -- SIGNAL SQLSTATE '45004' SET MESSAGE_TEXT = 'Insufficient balance'; 
         END IF;
     END IF;
-    
-         -- Lấy giới hạn từng giao dịch
-        SELECT transfer_limit INTO v_transaction_limit
-        FROM CHECK_ACCOUNTS
-        WHERE cus_account_id = NEW.cus_account_id;
-
-        IF NEW.trans_amount > v_transaction_limit THEN
-            SET NEW.trans_status = 'Failed';
-            SET NEW.trans_error_code = 'LIMIT-002';
-        END IF;
-    -- Kiểm tra hạn mức giao dịch trong ngày nếu là chuyển tiền Debit
-    
-    IF NEW.trans_type_id = 'TRF' AND NEW.direction = 'Debit' THEN
+     IF NEW.trans_type_id = 'TRF' AND NEW.direction = 'Debit' THEN
         -- Tổng số tiền đã chuyển trong ngày (chỉ tính giao dịch thành công)
         SELECT COALESCE(SUM(trans_amount), 0) INTO v_daily_total
         FROM TRANSACTIONS
@@ -280,14 +267,52 @@ BEGIN
 
         IF (v_daily_total + NEW.trans_amount) > v_daily_limit THEN
             SET NEW.trans_status = 'Failed';
+            SET NEW.trans_error_code = 'LIMIT-002';
+        END IF;
+        END IF;
+         -- Lấy giới hạn từng giao dịch
+        SELECT transfer_limit INTO v_transaction_limit
+        FROM CHECK_ACCOUNTS
+        WHERE cus_account_id = NEW.cus_account_id;
+
+        IF NEW.trans_amount > v_transaction_limit THEN
+            SET NEW.trans_status = 'Failed';
             SET NEW.trans_error_code = 'LIMIT-001';
         END IF;
-
-
+    -- Kiểm tra hạn mức giao dịch trong ngày nếu là chuyển tiền Debit
+   -- Check for same source and destination accounts
+    IF NEW.trans_type_id = 'TRF' AND NEW.related_cus_account_id = NEW.cus_account_id THEN
+        SET NEW.trans_status = 'Failed';
+        SET NEW.trans_error_code = 'VAL-001';
+        -- SIGNAL SQLSTATE '45001' SET MESSAGE_TEXT = 'Cannot transfer to the same account';
+    END IF;
+         -- Check if destination account exists (for transfer transactions)
+    IF NEW.trans_type_id = 'TRF' THEN
+        IF NOT EXISTS (
+            SELECT 1
+            FROM CUSTOMER_ACCOUNTS
+            WHERE cus_account_id = NEW.related_cus_account_id
+        ) THEN
+            SET NEW.trans_status = 'Failed';
+            SET NEW.trans_error_code = 'VAL-002';
+    END IF;
+    END IF;
+    -- Check account status
+    IF NEW.trans_type_id = 'TRF' THEN
+        SELECT cus_account_status INTO v_dest_account_status 
+        FROM CUSTOMER_ACCOUNTS 
+        WHERE cus_account_id = NEW.related_cus_account_id;
+        
+        IF v_dest_account_status != 'Active' THEN
+            SET NEW.trans_status = 'Failed';
+            SET NEW.trans_error_code = 'ACC-001';
+        END IF;
     END IF;
 END;
 //
 DELIMITER ;
+
+SELECT * FROM FAILED_TRANSACTIONS;
 
 -- Trigger sau khi giao dịch thất bại
 DELIMITER //
@@ -316,6 +341,7 @@ BEGIN
 END//
 DELIMITER ;
 
+
 -- -------------------------------------------------------------------
 
 
@@ -336,13 +362,20 @@ CREATE TABLE IF NOT EXISTS EMPLOYEES (
     emp_phone_num VARCHAR(15) UNIQUE NOT NULL, -- + [Mã quốc gia][Số còn lại] VD: +84 901238881
     emp_email VARCHAR(50) UNIQUE NOT NULL,
     emp_address VARCHAR(255) NOT NULL,
-    emp_hire_date DATE NOT NULL,
-    emp_salary INT(9) UNSIGNED NOT NULL,
+    emp_salary INT(9) UNSIGNED,
     branch_id VARCHAR(4),
+    emp_join_date DATETIME DEFAULT current_timestamp,
     emp_position_id VARCHAR(2),
     
     FOREIGN KEY (branch_id) REFERENCES BRANCHES(branch_id) ON DELETE CASCADE,
     FOREIGN KEY (emp_position_id) REFERENCES EMPLOYEE_POSITIONS(emp_position_id) ON DELETE SET NULL
+);
+CREATE TABLE IF NOT EXISTS EMPLOYEE_ACCOUNT_INDEX (
+	emp_position_id VARCHAR(2),
+    branch_id VARCHAR(4),
+    year CHAR(2),
+    current_index INT DEFAULT 0,
+    PRIMARY KEY (emp_position_id, branch_id, year)
 );
 CREATE TABLE IF NOT EXISTS SERVICE_TYPES (
     service_type_id VARCHAR(50) PRIMARY KEY,
@@ -469,18 +502,10 @@ CREATE TABLE SUSPICIONS (
 	FOREIGN KEY (trans_id) REFERENCES TRANSACTIONs(trans_id) ,
 	FOREIGN KEY (fraud_pattern_id) REFERENCES FRAUD_PATTERNS(fraud_pattern_id) ON DELETE CASCADE
 );
--- --------------------------------------------------------------------------------
--- CREATE INDEX idx_customer_id ON CUSTOMER_ACCOUNTS(cus_id);
--- CREATE INDEX idx_trans_time ON TRANSACTIONS(trans_time);
--- CREATE INDEX idx_trans_type_id ON TRANSACTIONS(trans_type_id);
--- CREATE INDEX idx_branch_id ON EMPLOYEES(branch_id);
--- CREATE INDEX idx_emp_position_id ON EMPLOYEES(emp_position_id);
--- --------------------------------------------------------------------------------
 
 
 					-- REPORT --------------------------------------------
-                    
-                    
+
 CREATE TABLE REPORT (
     report_id INT AUTO_INCREMENT PRIMARY KEY,
     report_name VARCHAR(100) NOT NULL UNIQUE,
@@ -499,18 +524,6 @@ CREATE TABLE REPORT_FILTER (
     is_required BOOLEAN,
     FOREIGN KEY (report_id) REFERENCES report(report_id)
 );
-#View employee_allowed_reports – Hiển thị các báo cáo mà nhân viên được truy cập
--- CREATE OR REPLACE VIEW employee_allowed_reports AS
--- SELECT 
---     e.Emp_ID, 
---     e.Emp_Position, 
---     r.report_id, 
---     r.report_name, 
---     r.report_description,
---     r.procedure_name
--- FROM Employees e
--- JOIN REPORT_ACCESS ra ON e.Emp_Position = ra.emp_position
--- JOIN REPORT r ON ra.report_id = r.report_id;
 
 -- Check nếu deposit_date ko ở trong tương lai---------------------------------------------------------
 SET SQL_SAFE_UPDATES = 0;
@@ -564,20 +577,6 @@ BEGIN
     COMMIT;
 END//
 DELIMITER ;
-INSERT INTO SUSPICIONS (trans_id, fraud_pattern_id, detected_time, severity_level)
-SELECT trans_id, fraud_pattern_id, detected_time, severity_level
-FROM TEMP_SUSPICIONS
-WHERE processed = FALSE
-LIMIT 1000;
-
-
--- Check if rows were inserted into SUSPICIONS
-SELECT COUNT(*) FROM SUSPICIONS;
-
--- Check if TEMP_SUSPICIONS rows got marked as processed
-SELECT COUNT(*) FROM TEMP_SUSPICIONS WHERE processed = FALSE;
-
-SELECT * FROM EVENT_LOG ORDER BY log_time DESC;
 
 
 DELIMITER //
@@ -675,8 +674,8 @@ BEGIN
         END IF;
     END IF;
 END//
-
 DELIMITER ;
+
 CREATE TABLE SUSPICIONS_PENDING_UPDATE (
     trans_id VARCHAR(18),
     fraud_pattern_id INT,
@@ -724,10 +723,10 @@ BEGIN
     -- Gọi thủ tục khóa tài khoản nếu cần
     CALL check_and_lock_account(account_id);
 END//
-
 DELIMITER ;
-DELIMITER //
+select * from suspicions;
 
+DELIMITER //
 CREATE EVENT apply_pending_severity_updates
 ON SCHEDULE EVERY 5 SECOND
 DO
@@ -747,8 +746,9 @@ BEGIN
 
     COMMIT;
 END//
-
 DELIMITER ;
+SELECT COUNT(*) FROM TEMP_SUSPICIONS WHERE processed = FALSE;
+
 -- =====================================
 ########################################################
 CREATE TABLE DEBUG_LOG_2 (
@@ -759,13 +759,8 @@ CREATE TABLE DEBUG_LOG_2 (
     high_severity_count INT,
     action_taken VARCHAR(100)
 );
-CREATE TABLE DEBUG_LOGS_2 (
-    log_id INT AUTO_INCREMENT PRIMARY KEY,
-    log_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-    message TEXT
-);
 
-Lock account
+-- Lock account
 DELIMITER //
 CREATE PROCEDURE check_and_lock_account(IN p_account_id VARCHAR(17))
 BEGIN
@@ -794,7 +789,7 @@ BEGIN
         -- Khóa tài khoản nếu có >=3 High severity
         IF high_severity_count >= 3 THEN
             UPDATE CUSTOMER_ACCOUNTS
-            SET cus_account_status = 'Temporary Locked'
+            SET cus_account_status = 'Temporarily Locked'
             WHERE cus_account_id = p_account_id;
 
             SET action_msg = 'Account temporarily locked due to 3+ high severity suspicions';
@@ -811,199 +806,8 @@ BEGIN
 END//
 DELIMITER ;
 
-DELIMITER //
 
-CREATE PROCEDURE check_and_lock_account_debug2(IN p_account_id VARCHAR(17))
-BEGIN
-    DECLARE high_severity_count INT DEFAULT 0;
-    DECLARE current_status VARCHAR(20);
 
-    -- Lấy trạng thái hiện tại
-    SELECT cus_account_status INTO current_status
-    FROM CUSTOMER_ACCOUNTS
-    WHERE cus_account_id = p_account_id;
-    
-    -- Ghi log: bắt đầu hàm
-    INSERT INTO DEBUG_LOGS_2(message) VALUES (CONCAT('START: Checking account ', p_account_id));
-
-    -- Ghi log trạng thái
-    INSERT INTO DEBUG_LOGS_2(message)
-    VALUES (CONCAT('Account Status: ', IFNULL(current_status, 'NULL')));
-
-    -- Chỉ xử lý nếu tài khoản Active
-    IF current_status = 'Active' THEN
-
-        -- Ghi log bắt đầu kiểm tra suspicion
-        INSERT INTO DEBUG_LOGS_2(message)
-        VALUES ('Account is active. Checking High severity suspicions.');
-
-        -- Đếm số nghi ngờ High severity (không tính False_positive)
-        SELECT COUNT(*) INTO high_severity_count
-        FROM SUSPICIONS s
-        JOIN TRANSACTIONS t ON s.trans_id = t.trans_id
-        WHERE t.cus_account_id = p_account_id
-          AND s.severity_level = 'High'
-          AND s.suspicion_status != 'False_positive';
-
-        -- Ghi log số nghi ngờ tìm được
-        INSERT INTO DEBUG_LOGS_2(message)
-        VALUES (CONCAT('High severity suspicion count: ', high_severity_count));
-
-        -- Khóa tài khoản nếu đủ điều kiện
-        IF high_severity_count >= 3 THEN
-            UPDATE CUSTOMER_ACCOUNTS
-            SET cus_account_status = 'Temporary Locked'
-            WHERE cus_account_id = p_account_id;
-
-            INSERT INTO DEBUG_LOGS_2(message)
-            VALUES ('Account locked due to >= 3 High severity suspicions.');
-        ELSE
-            INSERT INTO DEBUG_LOGS_2(message)
-            VALUES ('Less than 3 High severity. Account not locked.');
-        END IF;
-    ELSE
-        INSERT INTO DEBUG_LOGS_2(message)
-        VALUES ('Account not active. Skipping.');
-    END IF;
-
-    -- Kết thúc
-    INSERT INTO DEBUG_LOGS_2(message) VALUES ('END');
-
-END//
-
-DELIMITER ;
-SELECT * FROM DEBUG_LOGS_2 ORDER BY log_id DESC;
-CALL check_and_lock_account_debug2('ACC002');
-
-###############################################################################################################################
-INSERT INTO BRANCHES (branch_id, branch_name, branch_address) VALUES
-('HN', 'Hanoi', '123 Lang Street, Dong Da District, Hanoi'),
-('HCM', 'Ho Chi Minh City', '456 Le Loi Street, District 1, Ho Chi Minh City'),
-('DN', 'Da Nang', '789 Nguyen Van Linh Street, Hai Chau District, Da Nang'),
-('QN', 'Quang Ninh', '321 Tran Hung Dao Street, Ha Long City, Quang Ninh'),
-('HP', 'Hai Phong', '101 Lach Tray Street, Ngo Quyen District, Hai Phong');
--- INSERT INTO CUSTOMERS (
---     cus_ID, cus_first_name, cus_last_name, cus_dob, cus_email, cus_address,
---     cus_phone_num, cus_sex, cus_identification_id, cus_register_date, branch_id
--- ) VALUES
--- ('DTNBHN210000001', 'Nguyễn Văn', 'An', '1990-05-15', 'an.nguyenvan@gmail.com', '12 Lang Ha Street, Dong Da District, Hanoi', '+84 98 765 4321', 'Male', '012345678901', '2021-06-10', 'HN'),
--- ('DTNBHCM210000002', 'Trần Thị', 'Bích', '1985-08-20', 'bich.tranth@gmail.com', '45 Nguyen Thi Minh Khai Street, District 1, Ho Chi Minh City', '+84 91 234 5678', 'Female', '023456789012', '2021-09-15', 'HCM'),
--- ('DTNBDN220000003', 'Lê Văn', 'Cường', '1995-03-10', 'cuong.levan95@gmail.com', '89 Le Duan Street, Hai Chau District, Da Nang', '+84 92 345 6789', 'Male', '034567890123', '2022-03-05', 'DN'),
--- ('DTNBQN220000004', 'Phạm Vân', 'Thư', '1992-07-25', 'thu.phamvan92@gmail.com', '134 Tran Quoc Nghien Street, Ha Long City, Quang Ninh', '+84 96 112 2334', 'Female', '045678901234', '2022-07-12', 'QN'),
--- ('DTNBHP230000005', 'Nguyễn Phương', 'Đông', '1988-12-01', 'dong.nguyenphuong88@gmail.com', '210 Lach Tray Street, Ngo Quyen District, Hai Phong', '+84 97 998 8776', 'Male', '056789012345', '2023-01-20', 'HP'),
--- ('DTNBHN230000006', 'Lê Ngọc', 'Bích', '1993-11-18', 'bich.lengoc93@gmail.com', '18 Giang Vo Street, Ba Dinh District, Hanoi', '+84 90 567 8912', 'Female', '067890123456', '2023-04-22', 'HN'),
--- ('DTNBHN240000007', 'Hoàng Thị Thanh', 'Nhàn', '1980-04-30', 'nhan.hoangthithanh80@gmail.com', '20 Kim Ma Street, Ba Dinh District, Hanoi', '+84 93 456 7890', 'Female', '078901234567', '2024-02-28', 'HN'),
--- ('DTNBHCM240000008', 'Nguyễn Thị Thu', 'Trang', '1997-09-05', 'trang.nguyenthithu97@gmail.com', '67 Le Van Sy Street, District 3, Ho Chi Minh City', '+84 91 123 4567', 'Female', '089012345678', '2024-05-01', 'HCM');
-INSERT INTO TRANSACTION_TYPES (trans_type_id, trans_type_name, description)
-VALUES
-    ('POS', 'Point of Sale', 'Debit/credit card purchases at stores, online payments. Extremely frequent in retail banking.'),
-    ('DEP', 'Deposit', 'Includes salary credit, cash deposits, check deposits.'),
-    ('WDL', 'Withdrawal', 'ATM cash withdrawals or over-the-counter withdrawals.'),
-    ('TRF', 'Transfer', 'Transfers between personal accounts or to other people/banks.'),
-    ('PMT', 'Payment', 'Loan repayments, utility bill payments, subscriptions.'),
-    ('ACH', 'Automated Clearing House', 'Payroll, insurance, recurring payments (e.g., Netflix, insurance).'),
-    ('INT', 'Interest Credit', 'Monthly or quarterly interest accruals on savings accounts.'),
-    ('FEE', 'Fee Charge', 'Service charges, ATM fees, late fees, etc.'),
-    ('CHK', 'Check', 'Used more in business or older accounts (declining in use).'),
-    ('REF', 'Refund', 'E-commerce or billing refunds (increasing in usage).');
-INSERT INTO CUSTOMER_ACCOUNT_TYPES VALUES 
-('S', 'Saving Account'),
-('C', 'Checking Account'),
-('F', 'Fixed Deposit Account');
-INSERT INTO TRANSACTION_ERROR_CODES VALUES
-('VAL-001', 'SAME ACCOUNT', 'Source and destination accounts are the same', TRUE, TRUE, FALSE),
-('ACC-001', 'ACCOUNT LOCKED', 'The account has been locked', TRUE, FALSE, TRUE),
-('BAL-001', 'INSUFFICIENT BALANCE', 'Insufficient account balance', TRUE, TRUE, FALSE),
-('LIMIT-001', 'TRANSACTION LIMIT EXCEEDED', 'Exceeded the transaction limit', TRUE, FALSE, TRUE),
-('LIMIT-002', 'DAILY TRANSACTION LIMIT EXCEEDED', 'Exceeded the daily transaction limit', TRUE, FALSE, TRUE);
-INSERT INTO INTEREST_RATES (interest_rate_val, cus_account_type_id, min_balance, max_balance, status, term)
-VALUES
-(0.1, 'C', 0, NULL, 'Active', NULL),
-(1.9, 'S', 100000, 1000000000, 'Active', NULL),
-(4.8, 'F', 1000000, NULL, 'Active', 1),
-(5.2, 'F', 1000000, NULL, 'Active', 6),
-(5.5, 'F', 1000000, NULL, 'Inactive', 12);
-INSERT INTO SERVICE_TYPES (service_type_id, service_name, description)
-VALUES
-    -- Core Banking Service Groups
-    ('ACCT', 'Account Services', 'Opening, closing, and managing customer accounts'),
-    ('CARD', 'Card Services', 'Issuance and management of debit/credit cards'),
-    ('LOAN', 'Loan Services', 'Processing and management of loan products'),
-    ('TRAN', 'Transaction Services', 'Handling deposits, withdrawals, and transfers'),
-    ('CUST', 'Customer Support', 'Resolving inquiries and complaints'),
-    ('OPS', 'Internal Operations', 'Back-office processes and reconciliations'),
-    ('DIGI', 'Digital Banking', 'Online and mobile banking services'),
-    ('INVT', 'Investment Services', 'Wealth management and investment products'),
-    ('INSR', 'Insurance Services', 'Bank-linked insurance offerings'),
-    ('COMP', 'Compliance Reporting', 'Regulatory and anti-fraud operations');
-INSERT INTO EMPLOYEE_POSITIONS (emp_position_id, emp_position_name, description)
-VALUES 
-('T', 'Teller', 'Handles daily banking transactions'),
-('M', 'Manager', 'Manages bank branch operations'),
-('A', 'Auditor', 'Responsible for reviewing and auditing financial records'),
-('D', 'Director', 'Oversees and manages the operations of the department or company');
-INSERT INTO DEVICE_TYPES (device_type_name, is_portable, requires_approval, description)
-VALUES
-    ('Desktop', FALSE, FALSE, 'Standard device for most office-based employees (e.g., tellers, customer service, loan officers).'),
-    ('Laptop', TRUE, FALSE, 'For mobile employees, managers, auditors, or IT staff who may need to work remotely or across branches.'),
-    ('Thin Client', FALSE, FALSE, 'Used in highly secure environments (e.g., call centers or branch service counters).'),
-    ('Mobile Device', TRUE, TRUE, 'Typically for notifications, approvals (e.g., 2FA or digital signatures by senior staff).'),
-    ('Admin Console', FALSE, TRUE, 'Used by system admins or database administrators to manage internal systems.');
-INSERT INTO DEVICES (device_type_id, device_name, mac_address, ip_address, is_active, is_approved, created_at, last_checked_at)
-VALUES
-    -- Nhân viên 101 (IT Department)
-    (1, 'PC-Accounting-01', '00:1A:2B:3C:4D:5E', '192.168.1.100', TRUE, TRUE, '2023-01-15 09:00:00', '2023-12-01 14:30:00'),
-    (2, 'Laptop-IT-01', '00:1A:2B:3C:4D:5F', '192.168.1.101', TRUE, TRUE, '2023-01-16 10:00:00', '2023-12-01 14:35:00'),
-    -- Nhân viên 205 (Giao dịch viên)
-    (2, 'VM-Accounting-Backup', '00:1A:2B:3C:4D:60', '192.168.2.50', TRUE, TRUE, '2023-02-10 08:30:00', '2023-12-01 15:00:00'),
-    (4, 'Samsung Galaxy S23', '00:1A:2B:3C:4D:61', NULL, TRUE, TRUE, '2023-02-12 13:15:00', '2023-12-01 15:05:00'),
-    -- Nhân viên 307 (Quản lý chi nhánh)
-    (3, 'ThinClient-01', '00:1A:2B:3C:4D:62', '192.168.3.20', TRUE, TRUE, '2023-03-05 11:20:00', '2023-12-01 16:00:00');
-INSERT INTO FRAUD_PATTERNS (fraud_pattern_name, description)
-VALUES 
-('Transaction Amount Spike', 'More than 5 consecutive transaction in less than 15 minutes exceeds 10 times the average amount of that account over 1-year interval.(if these transaction amounts exceed 50000000'),
-('Dormant Account Activity', 'An account that has not had transactions for more than 3 months suddenly has a large transaction. From 50,000,000');
-SHOW TRIGGERS;
-DESCRIBE SUSPICIONS;
-
--- INSERT INTO EMPLOYEES (emp_id, emp_fullname, emp_sex, emp_dob, emp_phone_num, emp_email, emp_address, emp_hire_date, emp_salary, branch_id, emp_position_id)
--- VALUES 
--- ('1T2301001', 'John Doe', 'Male', '1985-01-01', '+84901234567', 'johndoe@example.com', '123 Street, City', '2023-06-15', 15000000, 'HN', 'T'),
--- ('2M2301002', 'Jane Smith', 'Female', '1990-02-20', '+84909876543', 'janesmith@example.com', '456 Avenue, City', '2022-05-10', 20000000, 'HN', 'M');
-
--- -- -----------------------------------
-CREATE OR REPLACE VIEW saving_accounts_view AS
-SELECT 
-  cus_account_id,
-  interest_rate_id,
-  CONCAT(FORMAT(saving_acc_balance, 0), ' VND') AS saving_acc_balance
-FROM SAVING_ACCOUNTS;
-
-CREATE OR REPLACE VIEW check_accounts_view AS
-SELECT 
-  cus_account_id,
-  interest_rate_id,
-  CONCAT(FORMAT(check_acc_balance, 0), ' VND') AS check_acc_balance,
-  CONCAT(FORMAT(transfer_limit, 0), ' VND') AS transfer_limit,
-  CONCAT(FORMAT(daily_transfer_limit, 0), ' VND') AS daily_transfer_limit
-FROM CHECK_ACCOUNTS;
-
-CREATE OR REPLACE VIEW fixed_deposit_accounts_view AS
-SELECT 
-  cus_account_id,
-  interest_rate_id,
-  CONCAT(FORMAT(deposit_amount, 0), ' VND') AS deposit_amount,
-  deposit_date,
-  maturity_date
-FROM FIXED_DEPOSIT_ACCOUNTS;
-CREATE OR REPLACE VIEW customer_accounts_view AS
-SELECT 
-  cus_account_id,
-  cus_id,
-  cus_account_status,
-  DATE_FORMAT(opening_date, '%d-%m-%Y %H:%i:%s') AS formatted_opening_date,
-  cus_account_type_id
-FROM CUSTOMER_ACCOUNTS;
 
 DELIMITER //
 
@@ -1190,216 +994,108 @@ ON SCHEDULE
     STARTS TIMESTAMP(DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-01 00:00:00'))
 DO
     CALL calculate_interest_for_accounts();
+###################################################################################################
+DELIMITER $$
 
--- ============================================
-INSERT INTO CUSTOMERS VALUES 
-('DTNB0101010000001', 'John', 'Doe', '1990-01-01', 'john@example.com', '123 Main St', '+84 901238881', 'Male', 'ID123456789', 'HN');
--- Saving Account
-INSERT INTO CUSTOMER_ACCOUNTS VALUES ('DTNBS25000001', 'DTNB0101010000001', 'Active', NOW(), 'S');
-UPDATE SAVING_ACCOUNTS
-	SET saving_acc_balance = 200000
-    WHERE cus_account_id = "DTNBS25000001" ; 
+CREATE TRIGGER trg_generate_customer_id
+BEFORE INSERT ON CUSTOMERS
+FOR EACH ROW
+BEGIN
+    DECLARE idx INT;
+    DECLARE yy CHAR(2);
+
+    -- Use cus_join_date year if given, otherwise use current date
+    SET yy = DATE_FORMAT(IFNULL(NEW.cus_join_date, CURRENT_TIMESTAMP), '%y');
+
+    -- Increase or initialize the index for (branch_id, year)
+    INSERT INTO CUSTOMERS_INDEX(branch_id, year, current_index)
+    VALUES (NEW.branch_id, yy, 1)
+    ON DUPLICATE KEY UPDATE current_index = current_index + 1;
+
+    -- Get the updated index
+    SELECT current_index INTO idx
+    FROM CUSTOMERS_INDEX
+    WHERE branch_id = NEW.branch_id AND year = yy;
+
+    -- Set the new customer ID
+    SET NEW.cus_ID = CONCAT('DTNB', NEW.branch_id, yy, LPAD(idx, 7, '0'));
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE TRIGGER trg_generate_customer_account_id
+BEFORE INSERT ON CUSTOMER_ACCOUNTS
+FOR EACH ROW
+BEGIN
+    DECLARE idx INT;
+    DECLARE yy CHAR(2);
+
+    -- Ưu tiên opening_date nếu có, không thì lấy CURRENT_DATE
+    SET yy = IFNULL(DATE_FORMAT(NEW.opening_date, '%y'), DATE_FORMAT(CURRENT_DATE, '%y'));
+
+    INSERT INTO CUSTOMER_ACCOUNT_INDEX(cus_account_type_id, year, current_index)
+    VALUES (NEW.cus_account_type_id, yy, 1)
+    ON DUPLICATE KEY UPDATE current_index = current_index + 1;
+
+    -- Lấy chỉ số mới
+    SELECT current_index INTO idx
+    FROM CUSTOMER_ACCOUNT_INDEX
+    WHERE cus_account_type_id = NEW.cus_account_type_id AND year = yy;
+
+    -- Tạo mã tài khoản: DTNB + Loại + Năm + Số thứ tự
+    SET NEW.cus_account_id = CONCAT('DTNB', NEW.cus_account_type_id, yy, LPAD(idx, 7, '0'));
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE TRIGGER trg_generate_emp_id
+BEFORE INSERT ON EMPLOYEES
+FOR EACH ROW
+BEGIN
+    DECLARE idx INT;
+    DECLARE yy CHAR(2);
+	SET yy = IFNULL(DATE_FORMAT(NEW.emp_join_date, '%y'), DATE_FORMAT(CURRENT_DATE, '%y'));
     
+    INSERT INTO EMPLOYEE_ACCOUNT_INDEX ( branch_id, emp_position_id, year, current_index)
+    VALUES (NEW.branch_id, NEW.emp_position_id, yy, 1)
+    ON DUPLICATE KEY UPDATE current_index = current_index + 1;
 
+    -- Lấy chỉ số mới sau khi cập nhật
+    SELECT current_index INTO idx
+    FROM EMPLOYEE_ACCOUNT_INDEX
+    WHERE branch_id = NEW.branch_id AND emp_position_id = NEW.emp_position_id AND year = yy;
 
+    -- Tạo customer_ID
+    SET NEW.emp_id = CONCAT(NEW.branch_id, NEW.emp_position_id,  yy, LPAD(idx, 4, '0'));
+END$$
 
--- Checking Account
-INSERT INTO CUSTOMER_ACCOUNTS VALUES ('DTNBC25000001', 'DTNB0101010000001', 'Active', NOW(), 'C');
-INSERT INTO CUSTOMER_ACCOUNTS VALUES ('DTNBC25000002', 'DTNB0101010000001', 'Active', NOW(), 'C');
-INSERT INTO CUSTOMER_ACCOUNTS VALUES ('DTNBC25000003', 'DTNB0101010000001', 'Locked', NOW(), 'C');
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER trg_generate_trans_id
+BEFORE INSERT ON TRANSACTIONS
+FOR EACH ROW
+BEGIN
+    DECLARE idx INT;
+    DECLARE yy CHAR(2);
+    SET yy = IFNULL(DATE_FORMAT(NEW.trans_time, '%y'), DATE_FORMAT(CURRENT_DATE, '%y'));
 
-UPDATE CHECK_ACCOUNTS
-SET check_acc_balance = 2000000
-    WHERE cus_account_id = "DTNBC25000001" ;
-UPDATE CHECK_ACCOUNTS
-SET check_acc_balance = 20000000, transfer_limit = 50000000, daily_transfer_limit = 500000000
-    WHERE cus_account_id = "DTNBC25000002" ;    
-UPDATE CHECK_ACCOUNTS
-SET check_acc_balance = 2000000
-    WHERE cus_account_id = "DTNBC25000003" ;
+    -- Tăng chỉ số cho branch + year hoặc thêm mới
+    INSERT INTO TRANSACTION_INDEX (trans_type_id, year_suffix, current_index)
+    VALUES (NEW.trans_type_id, yy, 1)
+    ON DUPLICATE KEY UPDATE current_index = current_index + 1;
 
+    -- Lấy chỉ số mới sau khi cập nhật
+    SELECT current_index INTO idx
+    FROM TRANSACTION_INDEX
+    WHERE trans_type_id= NEW.trans_type_id AND year_suffix = yy;
 
+    -- Tạo customer_ID
+    SET NEW.trans_id = CONCAT('DTNB', NEW.trans_type_id, yy, LPAD(idx, 7, '0'));
+END$$
 
-
-INSERT INTO CUSTOMER_ACCOUNTS VALUES ('DTNBF25000001', 'DTNB0101010000001', 'Active', NOW(), 'F');
-UPDATE FIXED_DEPOSIT_ACCOUNTS
-SET deposit_amount = 2000000
-    WHERE cus_account_id = "DTNBF25000001" ;  
-    
-
-
-
-
--- Locked Account for testing
--- INSERT INTO CHECK_ACCOUNTS VALUES ('DTNBC25000003', 500000 ,1, 1000000, 100000000);
--- INVALID AMOUNT
-INSERT INTO TRANSACTIONS VALUES ('TXN001', 'WDL', 'DTNBC25000002', NULL, 50900, 'Debit', NOW(), NOW(), 'Successful', NULL);
-INSERT INTO TRANSACTIONS VALUES ('TXN002', 'TRF', 'DTNBC25000002', 'DTNBC25000002', 10000, 'Debit', NOW(), NOW(), 'Successful', NULL);
-INSERT INTO TRANSACTIONS VALUES ('TXN003', 'TRF', 'DTNBC25000003', 'DTNBC25000002', 100000, 'Debit', NOW(), NOW(), 'Successful', NULL);
-INSERT INTO TRANSACTIONS VALUES ('TXN005', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 8000, 'Debit', NOW(), NOW(), 'Failed', 'BAL-001');
-INSERT INTO TRANSACTIONS VALUES ('TXN006', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 50000, 'Debit', NOW(), NOW(), 'Successful', NULL);
-INSERT INTO TRANSACTIONS VALUES ('TXN007', 'TRF', 'DTNBC25000001', 'DTNBC25000002', 500000, 'Debit', NOW(), NOW(), 'Successful', NULL);
-
--- First, let's establish a baseline average (small transactions)
-INSERT INTO TRANSACTIONS VALUES 
-('TXN008', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 100000, 'Debit', NOW(), NOW(), 'Successful', NULL),
-('TXN009', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 150000, 'Debit', NOW(), NOW(), 'Successful', NULL),
-('TXN010', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 200000, 'Debit', NOW(), NOW(), 'Successful', NULL);
-
--- Now insert a spike transaction (3x average should be ~450,000, so we'll do 500,000)
-INSERT INTO TRANSACTIONS VALUES 
-('TXN011', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 500000, 'Debit', NOW(), NOW(), 'Successful', NULL);
--- Tạo lịch sử giao dịch 1 năm cho tài khoản DTNBC25000002
-INSERT INTO TRANSACTIONS VALUES 
-('TXN029', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 1000000, 'Debit', DATE_SUB(NOW(), INTERVAL 11 MONTH), DATE_SUB(NOW(), INTERVAL 11 MONTH), 'Successful', NULL),
-('TXN030', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 1500000, 'Debit', DATE_SUB(NOW(), INTERVAL 10 MONTH), DATE_SUB(NOW(), INTERVAL 10 MONTH), 'Successful', NULL),
-('TXN031', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 2000000, 'Debit', DATE_SUB(NOW(), INTERVAL 9 MONTH), DATE_SUB(NOW(), INTERVAL 9 MONTH), 'Successful', NULL),
-('TXN032', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 1200000, 'Debit', DATE_SUB(NOW(), INTERVAL 8 MONTH), DATE_SUB(NOW(), INTERVAL 8 MONTH), 'Successful', NULL),
-('TXN033', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 1800000, 'Debit', DATE_SUB(NOW(), INTERVAL 7 MONTH), DATE_SUB(NOW(), INTERVAL 7 MONTH), 'Successful', NULL),
-('TXN034', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 900000, 'Debit', DATE_SUB(NOW(), INTERVAL 6 MONTH), DATE_SUB(NOW(), INTERVAL 6 MONTH), 'Successful', NULL),
-('TXN035', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 1100000, 'Debit', DATE_SUB(NOW(), INTERVAL 5 MONTH), DATE_SUB(NOW(), INTERVAL 5 MONTH), 'Successful', NULL),
-('TXN036', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 1300000, 'Debit', DATE_SUB(NOW(), INTERVAL 4 MONTH), DATE_SUB(NOW(), INTERVAL 4 MONTH), 'Successful', NULL),
-('TXN037', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 1700000, 'Debit', DATE_SUB(NOW(), INTERVAL 3 MONTH), DATE_SUB(NOW(), INTERVAL 3 MONTH), 'Successful', NULL),
-('TXN038', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 1400000, 'Debit', DATE_SUB(NOW(), INTERVAL 2 MONTH), DATE_SUB(NOW(), INTERVAL 2 MONTH), 'Successful', NULL),
-('TXN039', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 1600000, 'Debit', DATE_SUB(NOW(), INTERVAL 1 MONTH), DATE_SUB(NOW(), INTERVAL 1 MONTH), 'Successful', NULL);
-
--- Giao dịch bình thường gần đây (không đáng ngờ)
-INSERT INTO TRANSACTIONS VALUES 
-('TXN040', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 1500000, 'Debit', DATE_SUB(NOW(), INTERVAL 1 HOUR), DATE_SUB(NOW(), INTERVAL 1 HOUR), 'Successful', NULL),
-('TXN041', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 1200000, 'Debit', DATE_SUB(NOW(), INTERVAL 30 MINUTE), DATE_SUB(NOW(), INTERVAL 30 MINUTE), 'Successful', NULL);
--- Tính toán: 
--- Trung bình 1 năm = ~1,400,000 VND 
--- 10x trung bình = 14,000,000 VND
--- Cần 5 giao dịch trong 15 phút tổng > 14,000,000 VND
-
--- Chuỗi giao dịch gian lận trong 15 phút
-INSERT INTO TRANSACTIONS VALUES 
-('TXN042', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 3000000, 'Debit', DATE_SUB(NOW(), INTERVAL 14 MINUTE), DATE_SUB(NOW(), INTERVAL 14 MINUTE), 'Successful', NULL),
-('TXN043', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 3500000, 'Debit', DATE_SUB(NOW(), INTERVAL 12 MINUTE), DATE_SUB(NOW(), INTERVAL 12 MINUTE), 'Successful', NULL),
-('TXN044', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 4000000, 'Debit', DATE_SUB(NOW(), INTERVAL 10 MINUTE), DATE_SUB(NOW(), INTERVAL 10 MINUTE), 'Successful', NULL),
-('TXN045', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 2500000, 'Debit', DATE_SUB(NOW(), INTERVAL 8 MINUTE), DATE_SUB(NOW(), INTERVAL 8 MINUTE), 'Successful', NULL),
-('TXN046', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 3000000, 'Debit', DATE_SUB(NOW(), INTERVAL 5 MINUTE), DATE_SUB(NOW(), INTERVAL 5 MINUTE), 'Successful', NULL);
-select * from customer_accounts;
-select * from suspicions;
--- Tổng: 16,000,000 VND (>10x trung bình) trong 5 giao dịch
-
--- First, create a dormant account (no transactions for >3 months)
-INSERT INTO CUSTOMER_ACCOUNTS VALUES ('DTNBC25000004', 'DTNB0101010000001', 'Active', DATE_SUB(NOW(), INTERVAL 4 MONTH), 'C');
--- INSERT INTO CHECK_ACCOUNTS VALUES ('DTNBC25000004', 2000000, NULL, 50000000, 500000000);
-
--- Now add a large transaction to trigger dormant account detection
-INSERT INTO TRANSACTIONS VALUES 
-('TXN018', 'TRF', 'DTNBC25000004', 'DTNBS25000001', 50000000, 'Debit', NOW(), NOW(), 'Successful', NULL);
--- SELECT * FROM SUSPICIONS;
--- SELECT * FROM saving_accounts_view;
--- SELECT * FROM check_accounts_view;
--- SELECT * FROM fixed_deposit_accounts_view;
--- SELECT * FROM customer_accounts_view;
--- select * from transactions;
--- select * from failed_transactions;
-
-select * from suspicions;
--- Thêm khách hàng mẫu
-INSERT INTO CUSTOMERS VALUES 
-('CUS001', 'Nguyen', 'Van A', '1990-01-01', 'nguyenvana@email.com', '123 Đường ABC, Hà Nội', '0912345678', 'Male', '123456789012', 'HN');
--- Thêm tài khoản tiết kiệm
-INSERT INTO CUSTOMER_ACCOUNTS VALUES ('ACC001', 'CUS001', 'Active', NOW(), 'S');
-UPDATE CHECK_ACCOUNTS
-SET check_acc_balance = 2000000
-    WHERE cus_account_id = "ACC001" ;
-
--- Thêm tài khoản thanh toán
-INSERT INTO CUSTOMER_ACCOUNTS VALUES ('ACC002', 'CUS001', 'Active', NOW(), 'C');
-UPDATE CHECK_ACCOUNTS
-SET check_acc_balance = 200000000000000000
-    WHERE cus_account_id = "ACC002" ;-- Thêm tài khoản không hoạt động (dormant)
-
-SELECT * FROM CUSTOMER_ACCOUNTS;
--- Test case 1: Giao dịch bình thường không kích hoạt trigger
-INSERT INTO TRANSACTIONS VALUES 
-('TXN012', 'TRF', 'ACC002', 'ACC001', 1500000, 'Debit', NOW(), NOW(), 'Successful', NULL);
-
--- Test case 2: 5 giao dịch trong 15 phút vượt 10x trung bình (trung bình ~1.4tr, 10x = 14tr)
--- Lower yearly average for ACC002 by inserting small transactions
--- Insert small transactions (before amount spike)
-INSERT INTO TRANSACTIONS VALUES
-('AS115', 'TRF', 'ACC002', 'ACC001', 100000, 'Debit', DATE_SUB(NOW(), INTERVAL 350 DAY), DATE_SUB(NOW(), INTERVAL 350 DAY), 'Successful', NULL),
-('AS116', 'TRF', 'ACC002', 'ACC001', 120000, 'Debit', DATE_SUB(NOW(), INTERVAL 330 DAY), DATE_SUB(NOW(), INTERVAL 330 DAY), 'Successful', NULL),
-('AS117', 'TRF', 'ACC002', 'ACC001', 95000,  'Debit', DATE_SUB(NOW(), INTERVAL 310 DAY), DATE_SUB(NOW(), INTERVAL 310 DAY), 'Successful', NULL),
-('AS118', 'TRF', 'ACC002', 'ACC001', 110000, 'Debit', DATE_SUB(NOW(), INTERVAL 290 DAY), DATE_SUB(NOW(), INTERVAL 290 DAY), 'Successful', NULL),
-('AS119', 'TRF', 'ACC002', 'ACC001', 105000, 'Debit', DATE_SUB(NOW(), INTERVAL 270 DAY), DATE_SUB(NOW(), INTERVAL 270 DAY), 'Successful', NULL),
-('AS120', 'TRF', 'ACC002', 'ACC001', 98000,  'Debit', DATE_SUB(NOW(), INTERVAL 240 DAY), DATE_SUB(NOW(), INTERVAL 240 DAY), 'Successful', NULL),
-('AS121', 'TRF', 'ACC002', 'ACC001', 102000, 'Debit', DATE_SUB(NOW(), INTERVAL 220 DAY), DATE_SUB(NOW(), INTERVAL 220 DAY), 'Successful', NULL),
-('AS122', 'TRF', 'ACC002', 'ACC001', 100000, 'Debit', DATE_SUB(NOW(), INTERVAL 200 DAY), DATE_SUB(NOW(), INTERVAL 200 DAY), 'Successful', NULL),
-('AS123', 'TRF', 'ACC002', 'ACC001', 99000,  'Debit', DATE_SUB(NOW(), INTERVAL 180 DAY), DATE_SUB(NOW(), INTERVAL 180 DAY), 'Successful', NULL),
-('AS124', 'TRF', 'ACC002', 'ACC001', 97000,  'Debit', DATE_SUB(NOW(), INTERVAL 160 DAY), DATE_SUB(NOW(), INTERVAL 160 DAY), 'Successful', NULL),
-('AS125', 'TRF', 'ACC002', 'ACC001', 103000, 'Debit', DATE_SUB(NOW(), INTERVAL 140 DAY), DATE_SUB(NOW(), INTERVAL 140 DAY), 'Successful', NULL),
-('AS126', 'TRF', 'ACC002', 'ACC001', 101000, 'Debit', DATE_SUB(NOW(), INTERVAL 120 DAY), DATE_SUB(NOW(), INTERVAL 120 DAY), 'Successful', NULL),
-('AS127', 'TRF', 'ACC002', 'ACC001', 95000,  'Debit', DATE_SUB(NOW(), INTERVAL 100 DAY), DATE_SUB(NOW(), INTERVAL 100 DAY), 'Successful', NULL),
-('AS128', 'TRF', 'ACC002', 'ACC001', 98000,  'Debit', DATE_SUB(NOW(), INTERVAL 80 DAY), DATE_SUB(NOW(), INTERVAL 80 DAY), 'Successful', NULL),
-('AS129', 'TRF', 'ACC002', 'ACC001', 99000,  'Debit', DATE_SUB(NOW(), INTERVAL 60 DAY), DATE_SUB(NOW(), INTERVAL 60 DAY), 'Successful', NULL),
-('AS130', 'TRF', 'ACC002', 'ACC001', 96000,  'Debit', DATE_SUB(NOW(), INTERVAL 40 DAY), DATE_SUB(NOW(), INTERVAL 40 DAY), 'Successful', NULL),
-('AS131', 'TRF', 'ACC002', 'ACC001', 97000,  'Debit', DATE_SUB(NOW(), INTERVAL 20 DAY), DATE_SUB(NOW(), INTERVAL 20 DAY), 'Successful', NULL);
-
--- Insert the large spike transactions (these should come after the small ones)
-INSERT INTO TRANSACTIONS VALUES
-('AS132', 'TRF', 'ACC002', 'ACC001', 3000000, 'Debit', DATE_SUB(NOW(), INTERVAL 15 MINUTE), DATE_SUB(NOW(), INTERVAL 15 MINUTE), 'Successful', NULL),
-('AS133', 'TRF', 'ACC002', 'ACC001', 3500000, 'Debit', DATE_SUB(NOW(), INTERVAL 12 MINUTE), DATE_SUB(NOW(), INTERVAL 12 MINUTE), 'Successful', NULL),
-('AS134', 'TRF', 'ACC002', 'ACC001', 4000000, 'Debit', DATE_SUB(NOW(), INTERVAL 11 MINUTE), DATE_SUB(NOW(), INTERVAL 10 MINUTE), 'Successful', NULL),
-('AS135', 'TRF', 'ACC002', 'ACC001', 2500000, 'Debit', DATE_SUB(NOW(), INTERVAL 9 MINUTE), DATE_SUB(NOW(), INTERVAL 8 MINUTE), 'Successful', NULL),
-('AS136', 'TRF', 'ACC002', 'ACC001', 3000000, 'Debit', DATE_SUB(NOW(), INTERVAL 8 MINUTE), DATE_SUB(NOW(), INTERVAL 5 MINUTE), 'Successful', NULL),
-('AS137', 'TRF', 'ACC002', 'ACC001', 3000000, 'Debit', DATE_SUB(NOW(), INTERVAL 7 MINUTE), DATE_SUB(NOW(), INTERVAL 3 MINUTE), 'Successful', NULL),
-('AS138', 'TRF', 'ACC002', 'ACC001', 3000000, 'Debit', DATE_SUB(NOW(), INTERVAL 6 MINUTE), DATE_SUB(NOW(), INTERVAL 2 MINUTE), 'Successful', NULL),
-('AS139', 'TRF', 'ACC002', 'ACC001', 3000000, 'Debit', DATE_SUB(NOW(), INTERVAL 5 MINUTE), DATE_SUB(NOW(), INTERVAL 5 MINUTE), 'Successful', NULL),
-('AS140', 'TRF', 'ACC002', 'ACC001', 3000000, 'Debit', DATE_SUB(NOW(), INTERVAL 4 MINUTE), DATE_SUB(NOW(), INTERVAL 3 MINUTE), 'Successful', NULL),
-('AS141', 'TRF', 'ACC002', 'ACC001', 3000000, 'Debit', DATE_SUB(NOW(), INTERVAL 2 MINUTE), DATE_SUB(NOW(), INTERVAL 2 MINUTE), 'Successful', NULL);
-
--- Tạo khách hàng mới
-select * from debug_log;
-
--- Gắn tài khoản với khách hàng
-INSERT INTO CUSTOMER_ACCOUNTS (
-    cus_account_id, cus_id, cus_account_status, cus_account_type_id
-)
-VALUES (
-    'ACC003', 'CUS001', 'Active', 'C'
-);
-UPDATE CHECK_ACCOUNTS
-SET check_acc_balance = 200000000
-    WHERE cus_account_id = "ACC003" ;
-INSERT INTO TRANSACTIONS (
-    trans_id, trans_type_id, cus_account_id, related_cus_account_id, trans_amount,
-    direction, trans_time, last_updated, trans_status
-)
-VALUES (
-    'AS301', 'TRF', 'ACC003', 'ACC001', 100000, 'Debit',
-    DATE_SUB(NOW(), INTERVAL 100 DAY), DATE_SUB(NOW(), INTERVAL 100 DAY), 'Successful'
-);
-INSERT INTO TRANSACTIONS (
-    trans_id, trans_type_id, cus_account_id, related_cus_account_id, trans_amount,
-    direction, trans_time, last_updated, trans_status
-)
-VALUES (
-    'AS302', 'TRF', 'ACC003', 'ACC001', 80000000, 'Debit',
-    NOW(), NOW(), 'Successful'
-);
-select * from debug_log;
-select * from suspicions;
-select * from transactions;
-COMMIT;
-CALL check_and_lock_account_debug2('ACC002');
-
--- SELECT count(*)
--- FROM SUSPICIONS s
--- JOIN TRANSACTIONS t ON s.trans_id = t.trans_id
--- WHERE t.cus_account_id = 'ACC002'
--- 	AND s.severity_level = 'High'
---     AND s.suspicion_status != 'False_positive';
-
-
-
--- INSERT INTO CHECK_ACCOUNTS VALUES ('DTNBC25000011', 50000000 ,1, 100000, 1000000);
--- INSERT INTO TRANSACTIONS VALUES ('TXN007', 'TRF', 'DTNBC25000011', 'DTNBS25000001', 500000, 'Debit', NOW(), NOW(), 'Successful', NULL);
+DELIMITER ;
 use main;
 
 ###############################################################################################################################
@@ -1646,211 +1342,6 @@ INSERT INTO EMPLOYEES (emp_fullname, emp_sex, emp_dob, emp_phone_num, emp_email,
 
 
 -- ###########################################################
--- INSERT INTO CUSTOMERS VALUES 
--- ('DTNB0101010000001', 'John', 'Doe', '1990-01-01', 'john@example.com', '123 Main St', '+84 901238881', 'Male', 'ID123456789', 'HN');
--- -- Saving Account
--- INSERT INTO CUSTOMER_ACCOUNTS VALUES ('DTNBS25000001', 'DTNB0101010000001', 'Active', NOW(), 'S');
--- UPDATE SAVING_ACCOUNTS
--- 	SET saving_acc_balance = 200000
---     WHERE cus_account_id = "DTNBS25000001" ; 
---     
-
-
-
--- -- Checking Account
--- INSERT INTO CUSTOMER_ACCOUNTS VALUES ('DTNBC25000001', 'DTNB0101010000001', 'Active', NOW(), 'C');
--- INSERT INTO CUSTOMER_ACCOUNTS VALUES ('DTNBC25000002', 'DTNB0101010000001', 'Active', NOW(), 'C');
--- INSERT INTO CUSTOMER_ACCOUNTS VALUES ('DTNBC25000003', 'DTNB0101010000001', 'Locked', NOW(), 'C');
-
--- UPDATE CHECK_ACCOUNTS
--- SET check_acc_balance = 2000000
---     WHERE cus_account_id = "DTNBC25000001" ;
--- UPDATE CHECK_ACCOUNTS
--- SET check_acc_balance = 20000000, transfer_limit = 50000000, daily_transfer_limit = 500000000
---     WHERE cus_account_id = "DTNBC25000002" ;    
--- UPDATE CHECK_ACCOUNTS
--- SET check_acc_balance = 2000000
---     WHERE cus_account_id = "DTNBC25000003" ;
-
-
-
-
--- INSERT INTO CUSTOMER_ACCOUNTS VALUES ('DTNBF25000001', 'DTNB0101010000001', 'Active', NOW(), 'F');
--- UPDATE FIXED_DEPOSIT_ACCOUNTS
--- SET deposit_amount = 2000000
---     WHERE cus_account_id = "DTNBF25000001" ;  
---     
-
-
-
--- -- Locked Account for testing
--- -- INSERT INTO CHECK_ACCOUNTS VALUES ('DTNBC25000003', 500000 ,1, 1000000, 100000000);
--- -- INVALID AMOUNT
--- INSERT INTO TRANSACTIONS VALUES ('TXN001', 'WDL', 'DTNBC25000002', NULL, 50900, 'Debit', NOW(), NOW(), 'Successful', NULL);
--- INSERT INTO TRANSACTIONS VALUES ('TXN002', 'TRF', 'DTNBC25000002', 'DTNBC25000002', 10000, 'Debit', NOW(), NOW(), 'Successful', NULL);
--- INSERT INTO TRANSACTIONS VALUES ('TXN003', 'TRF', 'DTNBC25000003', 'DTNBC25000002', 100000, 'Debit', NOW(), NOW(), 'Successful', NULL);
--- INSERT INTO TRANSACTIONS VALUES ('TXN005', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 8000, 'Debit', NOW(), NOW(), 'Failed', 'BAL-001');
--- INSERT INTO TRANSACTIONS VALUES ('TXN006', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 50000, 'Debit', NOW(), NOW(), 'Successful', NULL);
--- INSERT INTO TRANSACTIONS VALUES ('TXN007', 'TRF', 'DTNBC25000001', 'DTNBC25000002', 500000, 'Debit', NOW(), NOW(), 'Successful', NULL);
-
--- -- First, let's establish a baseline average (small transactions)
--- INSERT INTO TRANSACTIONS VALUES 
--- ('TXN008', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 100000, 'Debit', NOW(), NOW(), 'Successful', NULL),
--- ('TXN009', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 150000, 'Debit', NOW(), NOW(), 'Successful', NULL),
--- ('TXN010', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 200000, 'Debit', NOW(), NOW(), 'Successful', NULL);
-
--- -- Now insert a spike transaction (3x average should be ~450,000, so we'll do 500,000)
--- INSERT INTO TRANSACTIONS VALUES 
--- ('TXN011', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 500000, 'Debit', NOW(), NOW(), 'Successful', NULL);
--- -- Tạo lịch sử giao dịch 1 năm cho tài khoản DTNBC25000002
--- INSERT INTO TRANSACTIONS VALUES 
--- ('TXN029', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 1000000, 'Debit', DATE_SUB(NOW(), INTERVAL 11 MONTH), DATE_SUB(NOW(), INTERVAL 11 MONTH), 'Successful', NULL),
--- ('TXN030', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 1500000, 'Debit', DATE_SUB(NOW(), INTERVAL 10 MONTH), DATE_SUB(NOW(), INTERVAL 10 MONTH), 'Successful', NULL),
--- ('TXN031', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 2000000, 'Debit', DATE_SUB(NOW(), INTERVAL 9 MONTH), DATE_SUB(NOW(), INTERVAL 9 MONTH), 'Successful', NULL),
--- ('TXN032', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 1200000, 'Debit', DATE_SUB(NOW(), INTERVAL 8 MONTH), DATE_SUB(NOW(), INTERVAL 8 MONTH), 'Successful', NULL),
--- ('TXN033', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 1800000, 'Debit', DATE_SUB(NOW(), INTERVAL 7 MONTH), DATE_SUB(NOW(), INTERVAL 7 MONTH), 'Successful', NULL),
--- ('TXN034', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 900000, 'Debit', DATE_SUB(NOW(), INTERVAL 6 MONTH), DATE_SUB(NOW(), INTERVAL 6 MONTH), 'Successful', NULL),
--- ('TXN035', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 1100000, 'Debit', DATE_SUB(NOW(), INTERVAL 5 MONTH), DATE_SUB(NOW(), INTERVAL 5 MONTH), 'Successful', NULL),
--- ('TXN036', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 1300000, 'Debit', DATE_SUB(NOW(), INTERVAL 4 MONTH), DATE_SUB(NOW(), INTERVAL 4 MONTH), 'Successful', NULL),
--- ('TXN037', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 1700000, 'Debit', DATE_SUB(NOW(), INTERVAL 3 MONTH), DATE_SUB(NOW(), INTERVAL 3 MONTH), 'Successful', NULL),
--- ('TXN038', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 1400000, 'Debit', DATE_SUB(NOW(), INTERVAL 2 MONTH), DATE_SUB(NOW(), INTERVAL 2 MONTH), 'Successful', NULL),
--- ('TXN039', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 1600000, 'Debit', DATE_SUB(NOW(), INTERVAL 1 MONTH), DATE_SUB(NOW(), INTERVAL 1 MONTH), 'Successful', NULL);
-
--- -- Giao dịch bình thường gần đây (không đáng ngờ)
--- INSERT INTO TRANSACTIONS VALUES 
--- ('TXN040', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 1500000, 'Debit', DATE_SUB(NOW(), INTERVAL 1 HOUR), DATE_SUB(NOW(), INTERVAL 1 HOUR), 'Successful', NULL),
--- ('TXN041', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 1200000, 'Debit', DATE_SUB(NOW(), INTERVAL 30 MINUTE), DATE_SUB(NOW(), INTERVAL 30 MINUTE), 'Successful', NULL);
--- -- Tính toán: 
--- -- Trung bình 1 năm = ~1,400,000 VND 
--- -- 10x trung bình = 14,000,000 VND
--- -- Cần 5 giao dịch trong 15 phút tổng > 14,000,000 VND
-
--- -- Chuỗi giao dịch gian lận trong 15 phút
--- INSERT INTO TRANSACTIONS VALUES 
--- ('TXN042', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 3000000, 'Debit', DATE_SUB(NOW(), INTERVAL 14 MINUTE), DATE_SUB(NOW(), INTERVAL 14 MINUTE), 'Successful', NULL),
--- ('TXN043', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 3500000, 'Debit', DATE_SUB(NOW(), INTERVAL 12 MINUTE), DATE_SUB(NOW(), INTERVAL 12 MINUTE), 'Successful', NULL),
--- ('TXN044', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 4000000, 'Debit', DATE_SUB(NOW(), INTERVAL 10 MINUTE), DATE_SUB(NOW(), INTERVAL 10 MINUTE), 'Successful', NULL),
--- ('TXN045', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 2500000, 'Debit', DATE_SUB(NOW(), INTERVAL 8 MINUTE), DATE_SUB(NOW(), INTERVAL 8 MINUTE), 'Successful', NULL),
--- ('TXN046', 'TRF', 'DTNBC25000002', 'DTNBS25000001', 3000000, 'Debit', DATE_SUB(NOW(), INTERVAL 5 MINUTE), DATE_SUB(NOW(), INTERVAL 5 MINUTE), 'Successful', NULL);
--- select * from customer_accounts;
--- select * from suspicions;
--- -- Tổng: 16,000,000 VND (>10x trung bình) trong 5 giao dịch
-
--- -- First, create a dormant account (no transactions for >3 months)
--- INSERT INTO CUSTOMER_ACCOUNTS VALUES ('DTNBC25000004', 'DTNB0101010000001', 'Active', DATE_SUB(NOW(), INTERVAL 4 MONTH), 'C');
--- -- INSERT INTO CHECK_ACCOUNTS VALUES ('DTNBC25000004', 2000000, NULL, 50000000, 500000000);
-
--- -- Now add a large transaction to trigger dormant account detection
--- INSERT INTO TRANSACTIONS VALUES 
--- ('TXN018', 'TRF', 'DTNBC25000004', 'DTNBS25000001', 50000000, 'Debit', NOW(), NOW(), 'Successful', NULL);
--- -- SELECT * FROM SUSPICIONS;
--- -- SELECT * FROM saving_accounts_view;
--- -- SELECT * FROM check_accounts_view;
--- -- SELECT * FROM fixed_deposit_accounts_view;
--- -- SELECT * FROM customer_accounts_view;
--- -- select * from transactions;
--- -- select * from failed_transactions;
-
--- -- Thêm khách hàng mẫu
--- INSERT INTO CUSTOMERS VALUES 
--- ('CUS001', 'Nguyen', 'Van A', '1990-01-01', 'nguyenvana@email.com', '123 Đường ABC, Hà Nội', '0912345678', 'Male', '123456789012', 'HN');
--- -- Thêm tài khoản tiết kiệm
--- INSERT INTO CUSTOMER_ACCOUNTS VALUES ('ACC001', 'CUS001', 'Active', NOW(), 'S');
--- UPDATE CHECK_ACCOUNTS
--- SET check_acc_balance = 2000000
---     WHERE cus_account_id = "ACC001" ;
-
--- -- Thêm tài khoản thanh toán
--- INSERT INTO CUSTOMER_ACCOUNTS VALUES ('ACC002', 'CUS001', 'Active', NOW(), 'C');
--- UPDATE CHECK_ACCOUNTS
--- SET check_acc_balance = 200000000000000000
---     WHERE cus_account_id = "ACC002" ;-- Thêm tài khoản không hoạt động (dormant)
-
--- SELECT * FROM CUSTOMER_ACCOUNTS;
--- -- Test case 1: Giao dịch bình thường không kích hoạt trigger
--- INSERT INTO TRANSACTIONS VALUES 
--- ('TXN012', 'TRF', 'ACC002', 'ACC001', 1500000, 'Debit', NOW(), NOW(), 'Successful', NULL);
-
--- -- Test case 2: 5 giao dịch trong 15 phút vượt 10x trung bình (trung bình ~1.4tr, 10x = 14tr)
--- -- Lower yearly average for ACC002 by inserting small transactions
--- -- Insert small transactions (before amount spike)
--- INSERT INTO TRANSACTIONS VALUES
--- ('AS115', 'TRF', 'ACC002', 'ACC001', 100000, 'Debit', DATE_SUB(NOW(), INTERVAL 350 DAY), DATE_SUB(NOW(), INTERVAL 350 DAY), 'Successful', NULL),
--- ('AS116', 'TRF', 'ACC002', 'ACC001', 120000, 'Debit', DATE_SUB(NOW(), INTERVAL 330 DAY), DATE_SUB(NOW(), INTERVAL 330 DAY), 'Successful', NULL),
--- ('AS117', 'TRF', 'ACC002', 'ACC001', 95000,  'Debit', DATE_SUB(NOW(), INTERVAL 310 DAY), DATE_SUB(NOW(), INTERVAL 310 DAY), 'Successful', NULL),
--- ('AS118', 'TRF', 'ACC002', 'ACC001', 110000, 'Debit', DATE_SUB(NOW(), INTERVAL 290 DAY), DATE_SUB(NOW(), INTERVAL 290 DAY), 'Successful', NULL),
--- ('AS119', 'TRF', 'ACC002', 'ACC001', 105000, 'Debit', DATE_SUB(NOW(), INTERVAL 270 DAY), DATE_SUB(NOW(), INTERVAL 270 DAY), 'Successful', NULL),
--- ('AS120', 'TRF', 'ACC002', 'ACC001', 98000,  'Debit', DATE_SUB(NOW(), INTERVAL 240 DAY), DATE_SUB(NOW(), INTERVAL 240 DAY), 'Successful', NULL),
--- ('AS121', 'TRF', 'ACC002', 'ACC001', 102000, 'Debit', DATE_SUB(NOW(), INTERVAL 220 DAY), DATE_SUB(NOW(), INTERVAL 220 DAY), 'Successful', NULL),
--- ('AS122', 'TRF', 'ACC002', 'ACC001', 100000, 'Debit', DATE_SUB(NOW(), INTERVAL 200 DAY), DATE_SUB(NOW(), INTERVAL 200 DAY), 'Successful', NULL),
--- ('AS123', 'TRF', 'ACC002', 'ACC001', 99000,  'Debit', DATE_SUB(NOW(), INTERVAL 180 DAY), DATE_SUB(NOW(), INTERVAL 180 DAY), 'Successful', NULL),
--- ('AS124', 'TRF', 'ACC002', 'ACC001', 97000,  'Debit', DATE_SUB(NOW(), INTERVAL 160 DAY), DATE_SUB(NOW(), INTERVAL 160 DAY), 'Successful', NULL),
--- ('AS125', 'TRF', 'ACC002', 'ACC001', 103000, 'Debit', DATE_SUB(NOW(), INTERVAL 140 DAY), DATE_SUB(NOW(), INTERVAL 140 DAY), 'Successful', NULL),
--- ('AS126', 'TRF', 'ACC002', 'ACC001', 101000, 'Debit', DATE_SUB(NOW(), INTERVAL 120 DAY), DATE_SUB(NOW(), INTERVAL 120 DAY), 'Successful', NULL),
--- ('AS127', 'TRF', 'ACC002', 'ACC001', 95000,  'Debit', DATE_SUB(NOW(), INTERVAL 100 DAY), DATE_SUB(NOW(), INTERVAL 100 DAY), 'Successful', NULL),
--- ('AS128', 'TRF', 'ACC002', 'ACC001', 98000,  'Debit', DATE_SUB(NOW(), INTERVAL 80 DAY), DATE_SUB(NOW(), INTERVAL 80 DAY), 'Successful', NULL),
--- ('AS129', 'TRF', 'ACC002', 'ACC001', 99000,  'Debit', DATE_SUB(NOW(), INTERVAL 60 DAY), DATE_SUB(NOW(), INTERVAL 60 DAY), 'Successful', NULL),
--- ('AS130', 'TRF', 'ACC002', 'ACC001', 96000,  'Debit', DATE_SUB(NOW(), INTERVAL 40 DAY), DATE_SUB(NOW(), INTERVAL 40 DAY), 'Successful', NULL),
--- ('AS131', 'TRF', 'ACC002', 'ACC001', 97000,  'Debit', DATE_SUB(NOW(), INTERVAL 20 DAY), DATE_SUB(NOW(), INTERVAL 20 DAY), 'Successful', NULL);
-
--- -- Insert the large spike transactions (these should come after the small ones)
--- INSERT INTO TRANSACTIONS VALUES
--- ('AS132', 'TRF', 'ACC002', 'ACC001', 3000000, 'Debit', DATE_SUB(NOW(), INTERVAL 15 MINUTE), DATE_SUB(NOW(), INTERVAL 15 MINUTE), 'Successful', NULL),
--- ('AS133', 'TRF', 'ACC002', 'ACC001', 3500000, 'Debit', DATE_SUB(NOW(), INTERVAL 12 MINUTE), DATE_SUB(NOW(), INTERVAL 12 MINUTE), 'Successful', NULL),
--- ('AS134', 'TRF', 'ACC002', 'ACC001', 4000000, 'Debit', DATE_SUB(NOW(), INTERVAL 11 MINUTE), DATE_SUB(NOW(), INTERVAL 10 MINUTE), 'Successful', NULL),
--- ('AS135', 'TRF', 'ACC002', 'ACC001', 2500000, 'Debit', DATE_SUB(NOW(), INTERVAL 9 MINUTE), DATE_SUB(NOW(), INTERVAL 8 MINUTE), 'Successful', NULL),
--- ('AS136', 'TRF', 'ACC002', 'ACC001', 3000000, 'Debit', DATE_SUB(NOW(), INTERVAL 8 MINUTE), DATE_SUB(NOW(), INTERVAL 5 MINUTE), 'Successful', NULL),
--- ('AS137', 'TRF', 'ACC002', 'ACC001', 3000000, 'Debit', DATE_SUB(NOW(), INTERVAL 7 MINUTE), DATE_SUB(NOW(), INTERVAL 3 MINUTE), 'Successful', NULL),
--- ('AS138', 'TRF', 'ACC002', 'ACC001', 3000000, 'Debit', DATE_SUB(NOW(), INTERVAL 6 MINUTE), DATE_SUB(NOW(), INTERVAL 2 MINUTE), 'Successful', NULL),
--- ('AS139', 'TRF', 'ACC002', 'ACC001', 3000000, 'Debit', DATE_SUB(NOW(), INTERVAL 5 MINUTE), DATE_SUB(NOW(), INTERVAL 5 MINUTE), 'Successful', NULL),
--- ('AS140', 'TRF', 'ACC002', 'ACC001', 3000000, 'Debit', DATE_SUB(NOW(), INTERVAL 4 MINUTE), DATE_SUB(NOW(), INTERVAL 3 MINUTE), 'Successful', NULL),
--- ('AS141', 'TRF', 'ACC002', 'ACC001', 3000000, 'Debit', DATE_SUB(NOW(), INTERVAL 2 MINUTE), DATE_SUB(NOW(), INTERVAL 2 MINUTE), 'Successful', NULL);
-
--- -- Tạo khách hàng mới
--- select * from debug_log;
-
--- -- Gắn tài khoản với khách hàng
--- INSERT INTO CUSTOMER_ACCOUNTS (
---     cus_account_id, cus_id, cus_account_status, cus_account_type_id
--- )
--- VALUES (
---     'ACC003', 'CUS001', 'Active', 'C'
--- );
--- UPDATE CHECK_ACCOUNTS
--- SET check_acc_balance = 200000000
---     WHERE cus_account_id = "ACC003" ;
--- INSERT INTO TRANSACTIONS (
---     trans_id, trans_type_id, cus_account_id, related_cus_account_id, trans_amount,
---     direction, trans_time, last_updated, trans_status
--- )
--- VALUES (
---     'AS301', 'TRF', 'ACC003', 'ACC001', 100000, 'Debit',
---     DATE_SUB(NOW(), INTERVAL 100 DAY), DATE_SUB(NOW(), INTERVAL 100 DAY), 'Successful'
--- );
--- INSERT INTO TRANSACTIONS (
---     trans_id, trans_type_id, cus_account_id, related_cus_account_id, trans_amount,
---     direction, trans_time, last_updated, trans_status
--- )
--- VALUES (
---     'AS302', 'TRF', 'ACC003', 'ACC001', 80000000, 'Debit',
---     NOW(), NOW(), 'Successful'
--- );
--- select * from debug_log_2;
--- select * from TEMP_suspicions;
--- select * from suspicions;
-
--- SELECT count(*)
--- FROM SUSPICIONS s
--- JOIN TRANSACTIONS t ON s.trans_id = t.trans_id
--- WHERE t.cus_account_id = 'ACC002'
--- 	AND s.severity_level = 'High'
---     AND s.suspicion_status != 'False_positive';
-
-
-
--- -- INSERT INTO CHECK_ACCOUNTS VALUES ('DTNBC25000011', 50000000 ,1, 100000, 1000000);
--- -- INSERT INTO TRANSACTIONS VALUES ('TXN007', 'TRF', 'DTNBC25000011', 'DTNBS25000001', 500000, 'Debit', NOW(), NOW(), 'Successful', NULL);
-
 -- 2013-07-01 (1 transaction)
 INSERT INTO TRANSACTIONS (trans_type_id, cus_account_id, related_cus_account_id, trans_amount, direction, trans_time, last_updated) VALUES
 ('POS', 'DTNBC130000001', NULL, 1300000, 'Debit', '2013-07-01 09:00:00', '2013-07-01 09:00:00'); -- Lê Văn Cường, Checking
@@ -2267,5 +1758,6 @@ WHERE t.cus_account_id = 'ACC002'
 
 -- INSERT INTO CHECK_ACCOUNTS VALUES ('DTNBC25000011', 50000000 ,1, 100000, 1000000);
 -- INSERT INTO TRANSACTIONS VALUES ('TXN007', 'TRF', 'DTNBC25000011', 'DTNBS25000001', 500000, 'Debit', NOW(), NOW(), 'Successful', NULL);
+
 
 
