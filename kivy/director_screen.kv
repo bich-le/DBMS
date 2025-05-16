@@ -3,7 +3,8 @@
     MDNavigationLayout:
         MDScreenManager:
             id: screen_manager
-
+            on_current: root.on_screen_manager_current(self, self.current)
+            
             MDScreen:
                 name: "customers"
                 MDBoxLayout:

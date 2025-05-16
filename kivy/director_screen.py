@@ -16,6 +16,9 @@ class DirectorScreen(MDScreen):
         if self.ids.screen_manager.current == "employees":
             self.load_all_employees()
 
+    def on_screen_manager_current(self, instance, value):
+        if value == "report":
+            self.ids.report_box.refresh()
 
     def load_all_employees(self):
         """Tải danh sách nhân viên sắp xếp theo chức vụ"""

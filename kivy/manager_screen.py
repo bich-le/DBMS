@@ -10,6 +10,8 @@ Builder.load_string("""
 <ReportBox>:
 """)  # để Kivy nhận diện
 class ManagerScreen(MDScreen):
+    def on_enter(self):
+        self.ids.report_box.refresh()
     def on_pre_enter(self):
         self.ids.screen_manager.current = "customers"
         if hasattr(self.ids, "report_box"):
