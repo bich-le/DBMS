@@ -114,8 +114,8 @@ class MyApp(MDApp):
         try:
             conn = mysql.connector.connect(
                 host="localhost",
-                user="root",
-                password="Bichthebest3805",
+                user="dong",
+                password="44444444",
                 database="main"
             )
             cursor = conn.cursor(dictionary=True)

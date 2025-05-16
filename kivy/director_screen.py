@@ -38,6 +38,7 @@ class DirectorScreen(MDScreen):
             self.ids.customers_screen.load_customers()
             
     def on_enter(self):
+        self.ids.report_box.refresh()
         if not self._first_load:
             self.ids.customers_screen.load_customers()
         
@@ -56,8 +57,8 @@ class DirectorScreen(MDScreen):
         try:
             self.db_connection = mysql.connector.connect(
                 host="localhost",
-                user="root",
-                password="Bichthebest3805",
+                user="dong",
+                password="44444444",
                 database="main"
             )
             self.cursor = self.db_connection.cursor(dictionary=True)
