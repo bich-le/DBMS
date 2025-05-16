@@ -152,5 +152,5 @@ select * from suspicions;
 
 
 ########LỖI RÚT TIỀN TRƯỚC KỲ HẠN CỦA FIXED_DEPOSIT_ACCOUNTS (TRIGGER after_insert_customer_account)
-INSERT INTO TRANSACTIONS (trans_type_id, cus_account_id, related_cus_account_id, trans_amount, direction, trans_time, last_updated) VALUES
-('WDL', 'DTNBF250000001', 'INVALID123', 15000000, 'Debit', '2025-05-15 14:00:00', '2025-05-15 14:00:00');
+-- INSERT INTO TRANSACTIONS (trans_type_id, cus_account_id, related_cus_account_id, trans_amount, direction, trans_time, last_updated) VALUES
+-- ('WDL', 'DTNBF250000001', 'INVALID123', 15000000, 'Debit', '2025-05-15 14:00:00', '2025-05-15 14:00:00');
