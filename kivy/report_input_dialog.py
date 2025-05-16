@@ -74,7 +74,7 @@ class ReportInputDialog:
 
         try:
             conn = mysql.connector.connect(
-                host="localhost", user="root", password="yourpassword", database="main"
+                host="localhost", user="dong", password="44444444", database="main"
             )
             cursor = conn.cursor()
             cursor.callproc("sp_branch_transaction_report", [branch_id, date_from, date_to])
