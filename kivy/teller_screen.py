@@ -47,9 +47,9 @@ class TellerScreen(MDScreen):
         try:
             self.db_connection = mysql.connector.connect(
                 host="localhost",
-                user="bich",
-                password="1234",
-                database="PROJECT"
+                user="root",
+                password="Bichthebest3805",
+                database="main"
             )
             self.cursor = self.db_connection.cursor(dictionary=True)
         except Error as e:
@@ -109,7 +109,10 @@ class TellerScreen(MDScreen):
             details = self.ids
             details.customer_name.text = f"{customer_details['cus_first_name']} {customer_details['cus_last_name']}"
             details.customer_id.text = f"ID: {customer_details['cus_id']}"
+            details.customer_sex.text = customer_details['cus_sex']
+            details.customer_address.text = customer_details['cus_address']
             details.customer_phone.text = customer_details['cus_phone_num']
+            details.customer_join_date.text = customer_details['cus_join_date'].strftime('%d/%m/%Y')
             details.customer_email.text = customer_details.get('cus_email', 'N/A')
             
             if customer_details.get('cus_dob'):
@@ -179,29 +182,16 @@ class TellerScreen(MDScreen):
     
     def show_account_details(self, account):
         try:
-            query = """
-            SELECT 
-                ca.*, 
-                cat.cus_account_type_name, 
-                COALESCE(sa.saving_acc_balance, ck.check_acc_balance, fd.deposit_amount) as balance,
-                COALESCE(sa.interest_rate_id, ck.interest_rate_id, fd.interest_rate_id) as interest_rate_id,
-                ir.interest_rate_val,
-                ca.opening_date
-            FROM CUSTOMER_ACCOUNTS ca
-            LEFT JOIN CUSTOMER_ACCOUNT_TYPES cat ON ca.cus_account_type_id = cat.cus_account_type_id
-            LEFT JOIN SAVING_ACCOUNTS sa ON ca.cus_account_id = sa.cus_account_id
-            LEFT JOIN CHECK_ACCOUNTS ck ON ca.cus_account_id = ck.cus_account_id
-            LEFT JOIN FIXED_DEPOSIT_ACCOUNTS fd ON ca.cus_account_id = fd.cus_account_id
-            LEFT JOIN INTEREST_RATES ir ON ir.interest_rate_id = COALESCE(sa.interest_rate_id, ck.interest_rate_id, fd.interest_rate_id)
-            WHERE ca.cus_account_id = %s
-            """
-            
-            self.cursor.execute(query, (account['cus_account_id'],))
-            account_details = self.cursor.fetchone()
-            
-            if not account_details:
-                raise ValueError("Account not found")
-            
+            self.cursor.callproc('GetAccountDetailsById', (account['cus_account_id'],))
+
+            # Sau khi gọi procedure, kết quả nằm trong một cursor phụ
+            for result in self.cursor.stored_results():
+                account_details = result.fetchone()
+                
+                if not account_details:
+                    self.show_error_dialog("Không tìm thấy thông tin tài khoản")
+                    return
+                
             details_text = f"""
             Account Type: {account_details['cus_account_type_name']}
             Account Status: {account_details['cus_account_status']}
@@ -223,9 +213,9 @@ class TellerScreen(MDScreen):
                 check_details = self.cursor.fetchone()
                 if check_details:
                     details_text += f"""
-Transfer Limit: {check_details['transfer_limit']:,} VND
-Daily Transfer Limit: {check_details['daily_transfer_limit']:,} VND
-"""
+                        Transfer Limit: {check_details['transfer_limit']:,} VND
+                        Daily Transfer Limit: {check_details['daily_transfer_limit']:,} VND
+                        """
             
             dialog = MDDialog(
                 title=f"Account Detail {account['cus_account_id']}",
@@ -260,25 +250,9 @@ Daily Transfer Limit: {check_details['daily_transfer_limit']:,} VND
         
     def show_customer_table(self):
         try:
-            query = """
-            SELECT 
-                c.cus_id,
-                CONCAT(c.cus_first_name, ' ', c.cus_last_name) as customer_name,
-                c.cus_phone_num,
-                c.cus_email,
-                b.branch_name,
-                COUNT(ca.cus_account_id) as account_count,
-                GROUP_CONCAT(cat.cus_account_type_name SEPARATOR ', ') as account_types
-            FROM CUSTOMERS c
-            LEFT JOIN BRANCHES b ON c.branch_id = b.branch_id
-            LEFT JOIN CUSTOMER_ACCOUNTS ca ON c.cus_id = ca.cus_id
-            LEFT JOIN CUSTOMER_ACCOUNT_TYPES cat ON ca.cus_account_type_id = cat.cus_account_type_id
-            GROUP BY c.cus_id
-            """
-            
-            self.cursor.execute(query)
+            self.cursor.execute("SELECT * FROM v_customer_summary")
             customers = self.cursor.fetchall()
-            
+
             if not customers:
                 self.show_error_dialog("Không có dữ liệu khách hàng")
                 return
@@ -289,7 +263,7 @@ Daily Transfer Limit: {check_details['daily_transfer_limit']:,} VND
                 size_hint=(1, None),
                 height=dp(400),
                 column_data=[
-                    ("ID", dp(30)),
+                    ("ID", dp(35)),
                     ("Name", dp(40)),
                     ("Phone Number", dp(30)),
                     ("Email", dp(40)),

@@ -52,7 +52,7 @@
 
                             MDCard:
                                 size_hint_y: None
-                                height: dp(200)
+                                height: dp(300)
                                 padding: dp(15)
                                 spacing: dp(10)
                                 orientation: "vertical"
@@ -71,6 +71,15 @@
 
                                 MDBoxLayout:
                                     MDLabel:
+                                        text: "Sex: "
+                                        size_hint_x: 0.3
+                                    MDLabel:
+                                        id: customer_sex
+                                        text: ""
+
+
+                                MDBoxLayout:
+                                    MDLabel:
                                         text: "DOB: "
                                         size_hint_x: 0.3
                                     MDLabel:
@@ -84,7 +93,23 @@
                                     MDLabel:
                                         id: customer_phone
                                         text: ""
-                                
+
+                                MDBoxLayout:
+                                    MDLabel:
+                                        text: "Address: "
+                                        size_hint_x: 0.3
+                                    MDLabel:
+                                        id: customer_address
+                                        text: ""
+
+                                MDBoxLayout:
+                                    MDLabel:
+                                        text: "Join Date: "
+                                        size_hint_x: 0.3
+                                    MDLabel:
+                                        id: customer_join_date
+                                        text: ""
+                                                               
                                 MDBoxLayout:
                                     MDLabel:
                                         text: "Email: "
@@ -105,7 +130,7 @@
                                 text: "Accounts"
                                 font_style: "H6"
                                 size_hint_y: None
-                                height: dp(30)
+                                height: dp(20)
 
                             ScrollView:
                                 MDList:
