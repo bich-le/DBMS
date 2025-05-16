@@ -32,6 +32,7 @@ class TellerScreen(MDScreen):
         self._first_load = True
         
     def on_pre_enter(self):
+  
         self.connect_to_db()
         self.ids.screen_manager.current = "customers"
         if hasattr(self.ids, "report_box"):
@@ -44,6 +45,7 @@ class TellerScreen(MDScreen):
             self.load_customers()
             
     def on_enter(self):
+        self.ids.report_box.refresh()
         if not self._first_load:
             self.load_customers()
         

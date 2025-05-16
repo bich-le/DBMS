@@ -13,7 +13,7 @@ from kivymd.uix.button import MDFlatButton
 from kivymd.uix.screen import MDScreen
 from kivy.lang import Builder
 
-from director_screen import DirectorScreen
+from kivy.ceo_screen import DirectorScreen
 import mysql.connector
 
 Builder.load_file("director_screen.kv")

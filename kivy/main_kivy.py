@@ -50,11 +50,14 @@ class MainScreen(MDScreen):
         password = self.ids.password.text
         app = MDApp.get_running_app()
         result = app.verify_login_and_get_position(username, password)
+       
+
         if result:
             status = result['status']
             position = result['emp_position_id']
 
             if status == 'Active':
+                app.current_role = position.lower()
                 app.root.transition.direction = "left"
                 app.root.current = position.lower()
             elif status == 'Inactive':
@@ -89,6 +92,10 @@ class AuditorScreen(MDScreen): pass
 #class DirectorScreen(MDScreen): pass
 
 class MyApp(MDApp):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.current_role = "guest"  # Mặc định ban đầu
+
     def build(self):
         self.theme_cls.primary_palette = "DeepPurple"
         Builder.load_file("director_screen.kv")

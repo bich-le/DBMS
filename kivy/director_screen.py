@@ -10,9 +10,12 @@ class DirectorScreen(MDScreen):
     dialog = None
 
     def on_enter(self):
+        self.ids.report_box.refresh()
+
         """Tự động load dữ liệu khi vào màn hình Employees"""
         if self.ids.screen_manager.current == "employees":
             self.load_all_employees()
+
 
     def load_all_employees(self):
         """Tải danh sách nhân viên sắp xếp theo chức vụ"""
