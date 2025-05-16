@@ -158,7 +158,19 @@ CREATE TABLE IF NOT EXISTS TRANSACTION_INDEX (
     current_index INT DEFAULT 0,
     PRIMARY KEY (trans_type_id, year_suffix)
 );
-
+-- Bảng tạm lưu các bút toán Có cần xử lý
+CREATE TABLE IF NOT EXISTS PENDING_CREDITS (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    trans_type_id VARCHAR(3) NOT NULL,
+    cus_account_id VARCHAR(17) NOT NULL,
+    related_cus_account_id VARCHAR(17) NOT NULL,
+    trans_amount INT NOT NULL CHECK (trans_amount >= 1000),
+    trans_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_updated DATETIME ,
+    
+    INDEX (created_at) -- Đánh index để xử lý theo thứ tự
+) ENGINE=InnoDB;
 
  -- INTERNAL SYSTEM --------------------------------------------
                     
