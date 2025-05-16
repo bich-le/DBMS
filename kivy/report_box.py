@@ -97,21 +97,24 @@ class ReportBox(MDBoxLayout):
 
     # Các hàm giả lập (bạn sẽ thay bằng gọi procedure thực tế)
     def show_all_transactions(self, instance):
-        self.show_fake_dialog("All Transaction History Report")
+        dialog = ReportInputDialog("all_transaction")
+        dialog.open()
 
     def show_suspicion(self, instance):
-        self.show_fake_dialog("Suspicious Transaction Report")
+        dialog = ReportInputDialog("suspicious_transaction")
+        dialog.open()
 
     def show_branch_transactions(self, instance):
         dialog = ReportInputDialog("branch_transaction")
         dialog.open()
 
     def show_account_summary(self, instance):
-        self.show_fake_dialog("Account Summary Report")
+        dialog = ReportInputDialog("account_summary")
+        dialog.open()
 
     def show_customer_summary(self, instance):
-        self.show_fake_dialog("Customer Summary by Branch Report")
-
+        dialog = ReportInputDialog("customer_summary")
+        dialog.open()
     def show_fake_dialog(self, title):
         dialog = MDDialog(
             title=title,
