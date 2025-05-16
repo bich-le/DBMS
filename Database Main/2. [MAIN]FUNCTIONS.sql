@@ -59,7 +59,6 @@ BEGIN
     SET NEW.cus_account_id = CONCAT('DTNB', NEW.cus_account_type_id, yy, LPAD(idx, 7, '0'));
 END$$
 DELIMITER ;
-
 DELIMITER $$
 CREATE TRIGGER trg_generate_emp_id
 BEFORE INSERT ON EMPLOYEES
@@ -393,7 +392,7 @@ END //
 DELIMITER ;
 
 ##################################################################################
-						-- Ensure double-entry bookkeeping principle --
+				-- Ensure double-entry bookkeeping principle --
 ##################################################################################
 DELIMITER //
 
@@ -571,7 +570,7 @@ DELIMITER ;
 ##################################################################################
 DELIMITER //
 CREATE EVENT move_temp_to_suspicions
-ON SCHEDULE EVERY 10 SECOND
+ON SCHEDULE EVERY 5 SECOND
 DO
 BEGIN
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
@@ -599,6 +598,7 @@ DELIMITER ;
 ##################################################################################
 						-- Detect Fraud 1: Amount Spike --
 ##################################################################################
+
 DELIMITER //
 CREATE TRIGGER detect_amount_spike
 AFTER INSERT ON TRANSACTIONS
@@ -655,11 +655,14 @@ BEGIN
 END//
 
 DELIMITER ;
+
+
 ##################################################################################
 				  -- Detect Fraud 2: Dormant Account Activity --
 ##################################################################################
 
-
+DELIMITER ;
+-- Dormant acc activity trigger
 DELIMITER //
 
 CREATE TRIGGER detect_dormant_activity
@@ -695,8 +698,10 @@ BEGIN
         END IF;
     END IF;
 END//
-
 DELIMITER ;
+
+
+
 
 ##################################################################################
 					-- Update severity level of suspicions --
@@ -722,6 +727,7 @@ BEGIN
     JOIN TRANSACTIONS t ON s.trans_id = t.trans_id
     WHERE t.cus_account_id = account_id
     AND s.suspicion_status != 'False_positive'
+    AND s.suspicion_status != 'Resolved'
     AND s.fraud_pattern_id = NEW.fraud_pattern_id;
 
     -- Xác định mức độ nghiêm trọng
@@ -742,7 +748,7 @@ END//
 DELIMITER ;
 DELIMITER //
 CREATE EVENT apply_pending_severity_updates
-ON SCHEDULE EVERY 10 SECOND
+ON SCHEDULE EVERY 5 SECOND
 DO
 BEGIN
     START TRANSACTION;
@@ -760,7 +766,6 @@ BEGIN
 
     COMMIT;
 END//
-
 DELIMITER ;
 ##################################################################################
 						-- Lock accounts with more than 5 suspicions --
@@ -768,7 +773,7 @@ DELIMITER ;
 DELIMITER //
 CREATE PROCEDURE check_and_lock_account(IN p_account_id VARCHAR(17))
 BEGIN
-    DECLARE suspicion_count INT DEFAULT 0;
+    DECLARE high_severity_count INT DEFAULT 0;
     DECLARE current_status VARCHAR(20);
     DECLARE action_msg VARCHAR(100);
 
@@ -783,15 +788,16 @@ BEGIN
     -- Chỉ xử lý nếu tài khoản chưa bị khóa
     IF current_status = 'Active' THEN
         -- Đếm số nghi ngờ High severity (không tính False_positive)
-        SELECT COUNT(*) INTO suspicion_count
+        SELECT COUNT(*) INTO high_severity_count
         FROM SUSPICIONS s
         JOIN TRANSACTIONS t ON s.trans_id = t.trans_id
         WHERE t.cus_account_id = p_account_id
+        AND s.severity_level = 'High'
         AND s.suspicion_status != 'False_positive'
         AND s.suspicion_status != 'Resolved';
 
-        -- Khóa tài khoản nếu có >=3 suspicion count
-        IF suspicion_count >= 5 THEN
+        -- Khóa tài khoản nếu có >=3 High severity
+        IF high_severity_count >= 3 THEN
             UPDATE CUSTOMER_ACCOUNTS
             SET cus_account_status = 'Temporarily Locked'
             WHERE cus_account_id = p_account_id;
@@ -805,9 +811,10 @@ BEGIN
     END IF;
 
     -- Ghi log vào DEBUG_LOG_2
-    INSERT INTO DEBUG_LOG_2 (account_id, current_status, suspicion_count, action_taken)
-    VALUES (p_account_id, current_status, suspicion_count, action_msg);
+    INSERT INTO DEBUG_LOG_2 (account_id, current_status, high_severity_count, action_taken)
+    VALUES (p_account_id, current_status, high_severity_count, action_msg);
 END//
 DELIMITER ;
+
 
 
