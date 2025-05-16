@@ -6,6 +6,20 @@ from report_result_dialog import show_result_dialog  # hàm hiển thị kết q
 from kivy.metrics import dp
 import mysql.connector  # dùng kết nối database thật
 
+
+class ContentBranchTransaction(MDBoxLayout):
+    def __init__(self, branch_input, date_from, date_to, **kwargs):
+        super().__init__(**kwargs)
+        self.orientation = "vertical"
+        self.spacing = dp(10)
+        self.padding = dp(20)
+        self.adaptive_height = True  # ✅ Cho phép dialog co giãn theo nội dung
+
+        self.add_widget(branch_input)
+        self.add_widget(date_from)
+        self.add_widget(date_to)
+
+
 class ReportInputDialog:
     def __init__(self, report_type):
         self.report_type = report_type
@@ -22,8 +36,6 @@ class ReportInputDialog:
             size_hint_y=None,
             height=dp(60),
             multiline=False,
-            readonly=False,
-            disabled=False,
         )
 
         self.date_from = MDTextField(
@@ -31,8 +43,6 @@ class ReportInputDialog:
             size_hint_y=None,
             height=dp(60),
             multiline=False,
-            readonly=False,
-            disabled=False,
         )
 
         self.date_to = MDTextField(
@@ -40,20 +50,13 @@ class ReportInputDialog:
             size_hint_y=None,
             height=dp(60),
             multiline=False,
-            readonly=False,
-            disabled=False,
         )
 
-
-        content = MDBoxLayout(
-            orientation="vertical",
-            spacing=10,
-            padding=20,
-            adaptive_size=True
+        content = ContentBranchTransaction(
+            branch_input=self.branch_input,
+            date_from=self.date_from,
+            date_to=self.date_to,
         )
-        content.add_widget(self.branch_input)
-        content.add_widget(self.date_from)
-        content.add_widget(self.date_to)
 
         return MDDialog(
             title="Branch Transaction Report",
@@ -69,7 +72,6 @@ class ReportInputDialog:
         date_from = self.date_from.text.strip()
         date_to = self.date_to.text.strip()
 
-        # Gọi procedure thật trong MySQL
         try:
             conn = mysql.connector.connect(
                 host="localhost", user="root", password="yourpassword", database="main"
