@@ -37,6 +37,7 @@ import mysql.connector
 import hashlib
 
 #Builder.load_file("director_screen.kv")
+# test merge
 
 class DrawerItem(MDNavigationDrawerItem):
     icon = StringProperty()
