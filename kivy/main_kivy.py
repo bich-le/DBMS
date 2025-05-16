@@ -85,10 +85,6 @@ class MainScreen(MDScreen):
         )
         self.dialog.open()
 
-class ManagerScreen(MDScreen): pass
-class AuditorScreen(MDScreen): pass
-#class DirectorScreen(MDScreen): pass
-
 class MyApp(MDApp):
     def build(self):
         self.theme_cls.primary_palette = "DeepPurple"
@@ -112,7 +108,7 @@ class MyApp(MDApp):
             conn = mysql.connector.connect(
                 host="localhost",
                 user="root",
-                password="Bich",
+                password="Bichthebest3805",
                 database="main"
             )
             cursor = conn.cursor(dictionary=True)
