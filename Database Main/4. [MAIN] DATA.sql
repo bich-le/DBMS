@@ -241,5 +241,16 @@ INSERT INTO EMPLOYEES (emp_fullname, emp_sex, emp_dob, emp_phone_num, emp_email,
 ('Vũ Minh Giao Dịch 5', 'Male', '1992-04-20', '+84 900000044', 'teller5.qn@bank.com', '23 Lý Thường Kiệt, Quảng Ninh', 12000000, 'QN', 'T', '2021-07-18'),
 ('Nguyễn Quang Kiểm Toán 1', 'Male', '1985-07-30', '+84 900000045', 'auditor1.qn@bank.com', '67 Cái Dăm, Quảng Ninh', 18000000, 'QN', 'A', '2020-03-10'),
 ('Lê Thị Kiểm Toán 2', 'Female', '1986-05-05', '+84 900000046', 'auditor2.qn@bank.com', '123 Bãi Cháy, Quảng Ninh', 17500000, 'QN', 'A', '2020-09-15');
-
-
+######################################################
+		-- EMPLOYEE ACCOUNTS --
+######################################################  
+INSERT INTO employee_accounts (emp_id, username, password_hash, status, suspension_time, reactivation_time, created_at
+) VALUES
+('HNA180001', 'toan1', SHA2('toan1', 256), 'Active', NULL, NULL, '2018-09-10 00:00:00'),
+('HNA190001', 'toan2', SHA2('toan2', 256), 'Active', NULL, NULL, '2019-11-05 00:00:00'),
+('HNC100001', 'van',   SHA2('van', 256), 'Active', NULL, NULL, '2010-01-15 00:00:00'),
+('HNM150001', 'nhan',  SHA2('nhan', 256), 'Active', NULL, NULL, '2015-03-10 00:00:00'),
+('HNM160001', 'chau',  SHA2('chau', 256), 'Active', NULL, NULL, '2016-05-20 00:00:00'),
+('HNT180001', 'nam',   SHA2('nam', 256), 'Active', NULL, NULL, '2018-02-15 00:00:00'),
+('HNT190001', 'gdich1', SHA2('gdich1', 256), 'Active', NULL, NULL, '2018-02-15 00:00:00'),
+('HNT200001', 'gdich2', SHA2('gdich2', 256), 'Active', NULL, NULL, '2018-02-15 00:00:00');
