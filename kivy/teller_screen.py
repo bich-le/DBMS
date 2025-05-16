@@ -32,6 +32,8 @@ class TellerScreen(MDScreen):
     def on_pre_enter(self):
         self.connect_to_db()
         self.ids.screen_manager.current = "customers"
+        if hasattr(self.ids, "report_box"):
+            self.ids.report_box.refresh()
         
         if self._first_load:
             Clock.schedule_once(lambda dt: self.load_customers(), 0.1)
@@ -320,6 +322,7 @@ class TellerScreen(MDScreen):
         except Exception as e:
             print("Lỗi khi tải bảng khách hàng:", e)
             self.show_error_dialog("Lỗi khi tải bảng khách hàng")
+            
     def call_report_procedure(self, report_id, cursor):
         """
         Gọi stored procedure tương ứng với report_id
