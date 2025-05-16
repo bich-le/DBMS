@@ -15,6 +15,7 @@ from kivymd.app import MDApp
 from kivymd.uix.datatables import MDDataTable
 
 from customers_screen import *
+from Employees_screen import *
 
 class DirectorScreen(MDScreen):
     def __init__(self, **kwargs):
@@ -41,6 +42,10 @@ class DirectorScreen(MDScreen):
         
     def navigate_to(self, screen_name):
         self.ids.screen_manager.current = screen_name
+        if screen_name == "employees":
+            self.load_employees()
+        elif screen_name == "customers":
+            self.load_customers()
         
     def on_leave(self):
         self.close_db_connection()
@@ -63,6 +68,7 @@ class DirectorScreen(MDScreen):
             self.cursor.close()
         if self.db_connection and self.db_connection.is_connected():
             self.db_connection.close()
+            
     
     def load_customers(self, search_term=""):
         load_customers(self, search_term)
@@ -84,3 +90,24 @@ class DirectorScreen(MDScreen):
         
     def show_customer_table(self):
         show_customer_table(self)
+        
+    def load_employees(self, search_term=""):
+        load_employees(self, search_term)
+        
+    def filter_employees(self, search_term):
+        self.load_employees(search_term)
+        
+    def show_employee_details(self, customer):
+        show_employee_details(self, customer)
+    
+    # def load_employee_accounts(self, customer_id):
+    #     load_employee_accounts(self, customer_id)
+    
+    # def show_account_details(self, account):
+    #     show_account_details(self, account)
+    
+    # def show_error_dialog(self, message):
+    #     show_error_dialog(self, message)
+        
+    def show_employee_table(self):
+        show_employee_table(self)

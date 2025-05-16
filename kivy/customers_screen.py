@@ -1,5 +1,3 @@
-# customer_utils.py
-
 from kivymd.uix.list import TwoLineListItem
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDFlatButton
