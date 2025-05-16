@@ -46,8 +46,7 @@ INSERT INTO TRANSACTIONS (trans_type_id, cus_account_id, related_cus_account_id,
 ('POS', 'DTNBC130000001', NULL, 1300000, 'Debit', '2023-01-01 09:00:00', '2023-01-01 09:00:00'), -- Lê Văn Cường, Checking
 ('DEP', 'DTNBS030000001', NULL, 5000000, 'Credit', '2023-01-01 09:00:00', '2023-01-01 09:00:00'), -- Lê Ngọc Bích, Savings
 ('DEP', 'DTNBS030000002', NULL, 6000000, 'Credit', '2023-01-01 09:00:00', '2023-01-01 09:00:00'); -- Hoàng Thị Thanh Nhàn, Savings
-select * from CHECK_accounts;
-select * from failed_transactions;
+
 
 -- 2023-02-01 (4 transactions)
 INSERT INTO TRANSACTIONS (trans_type_id, cus_account_id, related_cus_account_id, trans_amount, direction, trans_time, last_updated) VALUES
@@ -140,31 +139,30 @@ INSERT INTO TRANSACTIONS (trans_type_id, cus_account_id, related_cus_account_id,
 -- 2024-02-01 (2 transactions)
 INSERT INTO TRANSACTIONS (trans_type_id, cus_account_id, related_cus_account_id, trans_amount, direction, trans_time, last_updated) VALUES
 ('TRF', 'DTNBC130000001', 'DTNBS230000001', 1400000, 'Debit', '2024-02-01 14:00:00', '2024-02-01 14:00:00'), -- Lê Văn Cường, Checking
-('PMT', 'DTNBS030000002', NULL, 1000000, 'Debit', '2024-02-01 14:00:00', '2024-02-01 14:00:00'); -- Hoàng Thị Thanh Nhàn, Savings
+('FEE', 'DTNBS030000002', NULL, 1000000, 'Debit', '2024-02-01 14:00:00', '2024-02-01 14:00:00'); -- Hoàng Thị Thanh Nhàn, Savings
 
 -- 2024-03-01 (3 transactions)
 INSERT INTO TRANSACTIONS (trans_type_id, cus_account_id, related_cus_account_id, trans_amount, direction, trans_time, last_updated) VALUES
 ('PMT', 'DTNBC130000001', NULL, 1000000, 'Debit', '2024-03-01 15:00:00', '2024-03-01 15:00:00'), -- Lê Văn Cường, Checking
-('PMT', 'DTNBS030000002', NULL, 1100000, 'Debit', '2024-03-01 15:00:00', '2024-03-01 15:00:00'), -- Hoàng Thị Thanh Nhàn, Savings
+('WDL', 'DTNBS030000002', NULL, 1100000, 'Debit', '2024-03-01 15:00:00', '2024-03-01 15:00:00'), -- Hoàng Thị Thanh Nhàn, Savings (Changed from PMT)
 ('INT', 'DTNBF230000001', NULL, 220000, 'Credit', '2024-03-01 08:00:00', '2024-03-01 08:00:00'); -- Nguyễn Văn An, Fixed
 
 -- 2024-04-01 (2 transactions)
 INSERT INTO TRANSACTIONS (trans_type_id, cus_account_id, related_cus_account_id, trans_amount, direction, trans_time, last_updated) VALUES
 ('PMT', 'DTNBC130000001', NULL, 1100000, 'Debit', '2024-04-01 16:00:00', '2024-04-01 16:00:00'), -- Lê Văn Cường, Checking
-('ACH', 'DTNBS030000002', NULL, 1200000, 'Debit', '2024-04-01 16:00:00', '2024-04-01 16:00:00'); -- Hoàng Thị Thanh Nhàn, Savings
-
+('WDL', 'DTNBS030000002', NULL, 1200000, 'Debit', '2024-04-01 16:00:00', '2024-04-01 16:00:00'); -- Hoàng Thị Thanh Nhàn, Savings (Changed from ACH)
+select * from fixed_deposit_accounts;
 -- 2024-05-01 (2 transactions)
 INSERT INTO TRANSACTIONS (trans_type_id, cus_account_id, related_cus_account_id, trans_amount, direction, trans_time, last_updated) VALUES
 ('ACH', 'DTNBC130000001', NULL, 1200000, 'Debit', '2024-05-01 09:00:00', '2024-05-01 09:00:00'), -- Lê Văn Cường, Checking
-('TRF', 'DTNBF230000001', 'INVALID123', 5000000, 'Debit', '2024-05-01 13:00:00', '2024-05-01 13:00:00'); -- Nguyễn Văn An, Fixed, Invalid account
-
+('FEE', 'DTNBF230000001', NULL, 50000, 'Debit', '2024-05-01 13:00:00', '2024-05-01 13:00:00'); -- Nguyễn Văn An, Fixed, Penalty for early withdrawal
 -- 2024-06-01 (5 transactions)
 INSERT INTO TRANSACTIONS (trans_type_id, cus_account_id, related_cus_account_id, trans_amount, direction, trans_time, last_updated) VALUES
 ('ACH', 'DTNBC130000001', NULL, 1300000, 'Debit', '2024-06-01 10:00:00', '2024-06-01 10:00:00'), -- Lê Văn Cường, Checking
 ('INT', 'DTNBS230000001', NULL, 130000, 'Credit', '2024-06-01 08:00:00', '2024-06-01 08:00:00'), -- Trần Thị Bích, Savings
 ('INT', 'DTNBS220000002', NULL, 150000, 'Credit', '2024-06-01 08:00:00', '2024-06-01 08:00:00'), -- Phạm Vân Thư, Savings
 ('INT', 'DTNBS030000002', NULL, 150000, 'Credit', '2024-06-01 08:00:00', '2024-06-01 08:00:00'), -- Hoàng Thị Thanh Nhàn, Savings
-('TRF', 'DTNBF230000001', 'DTNBS230000001', 30000000, 'Debit', '2024-06-01 14:00:00', '2024-06-01 14:00:00'); -- Nguyễn Văn An, Fixed, Overdraft
+('WDL', 'DTNBF230000001', 'DTNBS230000001', 30000000, 'Debit', '2024-06-01 14:00:00', '2024-06-01 14:00:00'); -- Nguyễn Văn An, Fixed (Changed from TRF)
 
 -- 2024-07-01 (2 transactions)
 INSERT INTO TRANSACTIONS (trans_type_id, cus_account_id, related_cus_account_id, trans_amount, direction, trans_time, last_updated) VALUES
@@ -178,7 +176,7 @@ INSERT INTO TRANSACTIONS (trans_type_id, cus_account_id, related_cus_account_id,
 
 -- 2024-09-01 (2 transactions)
 INSERT INTO TRANSACTIONS (trans_type_id, cus_account_id, related_cus_account_id, trans_amount, direction, trans_time, last_updated) VALUES
-('PMT', 'DTNBS230000001', NULL, 1000000, 'Debit', '2024-09-01 14:00:00', '2024-09-01 14:00:00'), -- Trần Thị Bích, Savings
+('WDL', 'DTNBS230000001', NULL, 1000000, 'Debit', '2024-09-01 14:00:00', '2024-09-01 14:00:00'), -- Trần Thị Bích, Savings (Changed from PMT)
 ('POS', 'DTNBC240000001', NULL, 1800000, 'Debit', '2024-09-01 11:00:00', '2024-09-01 11:00:00'); -- Trần Thị Bích, Checking
 
 -- 2024-10-01 (1 transaction)
@@ -187,7 +185,7 @@ INSERT INTO TRANSACTIONS (trans_type_id, cus_account_id, related_cus_account_id,
 
 -- 2024-11-01 (1 transaction)
 INSERT INTO TRANSACTIONS (trans_type_id, cus_account_id, related_cus_account_id, trans_amount, direction, trans_time, last_updated) VALUES
-('POS', 'DTNBC240000001', NULL, 10000000, 'Debit', '2024-11-01 13:00:00', '2024-11-01 13:00:00'); -- Trần Thị Bích, Checking, Overdraft
+('POS', 'DTNBC240000001', NULL, 10000000, 'Debit', '2024-11-01 13:00:00', '2024-11-01 13:00:00'); -- Trần Thị Bích, Checking
 
 -- 2024-12-01 (2 transactions)
 INSERT INTO TRANSACTIONS (trans_type_id, cus_account_id, related_cus_account_id, trans_amount, direction, trans_time, last_updated) VALUES
@@ -209,8 +207,7 @@ INSERT INTO TRANSACTIONS (trans_type_id, cus_account_id, related_cus_account_id,
 
 -- 2025-05-15 (2 transactions)
 INSERT INTO TRANSACTIONS (trans_type_id, cus_account_id, related_cus_account_id, trans_amount, direction, trans_time, last_updated) VALUES
-('WDL', 'DTNBS250000001', NULL, 1000000, 'Debit', '2025-05-15 14:00:00', '2025-05-15 14:00:00'), -- Nguyễn Thị Thu Trang, Savings
-('TRF', 'DTNBF250000001', 'INVALID123', 15000000, 'Debit', '2025-05-15 14:00:00', '2025-05-15 14:00:00'); -- Nguyễn Thị Thu Trang, Fixed, Invalid account, Overdraft
+('WDL', 'DTNBS250000001', NULL, 1000000, 'Debit', '2025-05-15 14:00:00', '2025-05-15 14:00:00'); -- Nguyễn Thị Thu Trang, Savings
 
 -- 2025-05-16 (1 transaction)
 INSERT INTO TRANSACTIONS (trans_type_id, cus_account_id, related_cus_account_id, trans_amount, direction, trans_time, last_updated) VALUES
@@ -218,5 +215,10 @@ INSERT INTO TRANSACTIONS (trans_type_id, cus_account_id, related_cus_account_id,
 
 -- 2025-05-17 (1 transaction)
 INSERT INTO TRANSACTIONS (trans_type_id, cus_account_id, related_cus_account_id, trans_amount, direction, trans_time, last_updated) VALUES
-('TRF', 'DTNBS250000001', 'DTNBF250000001', 1500000, 'Debit', '2025-05-17 16:00:00', '2025-05-17 16:00:00'); -- Nguyễn Thị Thu Trang, Savings, Self-transfer
+('TRF', 'DTNBS250000001', 'DTNBC240000001', 1501, 'Debit', '2025-05-17 16:00:00', '2025-05-17 16:00:00'); -- Nguyễn Thị Thu Trang, Savings
+SELECT * FROM CHECK_ACCOUNTS WHERE CUS_ACCOUNT_ID = 'DTNBC240000001';
+SELECT * FROM SAVING_ACCOUNTS WHERE CUS_ACCOUNT_ID = 'DTNBS250000001';
+
+SELECT * FROM TRANSACTIONS
+ORDER BY trans_time DESC;  -- Sắp xếp tăng dần theo thời gian (cũ nhất lên trước)
 
