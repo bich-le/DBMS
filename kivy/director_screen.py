@@ -1,48 +1,63 @@
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.datatables import MDDataTable
+from kivymd.uix.list import TwoLineListItem
+from kivymd.uix.dialog import MDDialog
+from kivymd.uix.button import MDFlatButton
 from kivy.metrics import dp
-from kivy.clock import Clock
 import mysql.connector
+from mysql.connector import Error
+
 
 class DirectorScreen(MDScreen):
-    all_employees_data = []
-    all_transactions_data = []
-    data_emp_table = None
-    data_trans_table = None
-    dialog = None
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.all_employees_data = []
+        self.all_transactions_data = []
+        self.data_emp_table = None
+        self.data_trans_table = None
+        self._emp_placeholder = None
+        self._trans_placeholder = None
 
     def on_enter(self):
-        self.ids.report_box.refresh()
-
-        """Tự động load dữ liệu khi vào màn hình Employees"""
-        if self.ids.screen_manager.current == "employees":
+        current_screen = self.ids.screen_manager.current
+        if current_screen == "employees":
             self.load_all_employees()
-        if self.ids.screen_manager.current == "transactions":
-            self.load_all_transaction()
+        elif current_screen == "transactions":
+            self.load_all_transactions()
+        elif current_screen == "report":
+            self.ids.report_box.refresh()
 
-    def load_all_employees(self):
-        """Tải danh sách nhân viên sắp xếp theo chức vụ"""
+    def get_db_connection(self):
         try:
-            conn = mysql.connector.connect(
+            return mysql.connector.connect(
                 host="localhost",
                 user="root",
                 password="Nhan220405",
-                database="PROJECT"
+                database="main"
             )
-            cursor = conn.cursor()
-            
-            # Query với sắp xếp theo thứ tự chức vụ
+        except Error as e:
+            print("Database connection error:", e)
+            return None
+
+    def load_all_employees(self):
+        conn = self.get_db_connection()
+        if not conn:
+            self.show_employee_error("Không thể kết nối database")
+            return
+
+        try:
+            cursor = conn.cursor(dictionary=True)
             cursor.execute("""
                 SELECT 
                     emp_id,
                     emp_fullname, 
-                    emp_position,
-                    emp_phone,
+                    emp_position_id,
+                    emp_phone_num,
                     emp_email,
-                    DATE_FORMAT(emp_hire_date, '%d/%m/%Y')
-                FROM EMPLOYEES
+                    DATE_FORMAT(emp_join_date, '%d/%m/%Y') as emp_join_date
+                FROM employees
                 ORDER BY 
-                    CASE emp_position
+                    CASE emp_position_id
                         WHEN 'Director' THEN 1
                         WHEN 'Manager' THEN 2
                         WHEN 'Auditor' THEN 3
@@ -51,33 +66,35 @@ class DirectorScreen(MDScreen):
                     END,
                     emp_fullname
             """)
-            
             self.all_employees_data = cursor.fetchall()
             self.show_employee_table(self.all_employees_data)
-            
-        except Exception as e:
+        except Error as e:
             print("Lỗi khi tải nhân viên:", e)
-            # Hiển thị thông báo lỗi lên giao diện
-            if hasattr(self.ids, 'placeholder'):
-                self.ids.placeholder.text = f"Lỗi khi tải dữ liệu: {str(e)}"
+            self.show_employee_error(f"Lỗi khi tải dữ liệu: {str(e)}")
         finally:
-            if 'conn' in locals() and conn.is_connected():
+            if conn.is_connected():
                 cursor.close()
                 conn.close()
 
     def show_employee_table(self, data):
-        """Hiển thị bảng dữ liệu nhân viên"""
-        # Xóa placeholder nếu có
-        if hasattr(self.ids, 'placeholder'):
-            self.ids.table_container.remove_widget(self.ids.placeholder)
-        # Xóa bảng cũ nếu tồn tại
-        if self.data_emp_table:
-            self.ids.table_container.remove_widget(self.data_emp_table)
-        
-        # Tạo bảng mới
+        container = self.ids.get('emp_table_container')
+        if not container:
+            return
+
+        if not self._emp_placeholder:
+            self._emp_placeholder = self.ids.get('emp_placeholder')
+
+        container.clear_widgets()
+
+        if not data:
+            if self._emp_placeholder:
+                self._emp_placeholder.text = "Không có dữ liệu nhân viên"
+                container.add_widget(self._emp_placeholder)
+            return
+
         self.data_emp_table = MDDataTable(
             size_hint=(1, None),
-            height=max(len(data) * dp(50), dp(300)),
+            height=min(len(data) * dp(50), dp(500)),
             column_data=[
                 ("ID", dp(30)),
                 ("Họ tên", dp(50)),
@@ -86,132 +103,156 @@ class DirectorScreen(MDScreen):
                 ("Email", dp(60)),
                 ("Ngày vào", dp(40)),
             ],
-            row_data=data,
-            use_pagination=False,
+            row_data=[(
+                row['emp_id'],
+                row['emp_fullname'],
+                row['emp_position_id'],
+                row['emp_phone_num'],
+                row['emp_email'],
+                row['emp_join_date']
+            ) for row in data],
+            use_pagination=True,
+            rows_num=10,
             background_color_header="#1e88e5",
             background_color_cell="#e3f2fd",
-            background_color_selected_cell="#b3e5fc",
         )
-        self.ids.table_container.add_widget(self.data_emp_table)
-        print("Đã hiển thị bảng dữ liệu nhân viên")
+        container.add_widget(self.data_emp_table)
 
-    def get_row_color(self, table, index):
-        """Xác định màu nền theo chức vụ"""
-        row = table.row_data[index]
-        position = row[2].lower()  # Cột chức vụ
-        
-        if 'director' in position:
-            return "#e8f5e9"  # Xanh lá nhạt
-        elif 'manager' in position:
-            return "#e3f2fd"  # Xanh dương nhạt
-        elif 'auditor' in position:
-            return "#fff8e1"  # Vàng nhạt
-        elif 'teller' in position:
-            return "#fce4ec"  # Hồng nhạt
-        return "#ffffff"  # Màu trắng mặc định
-
-    def search_employees(self, query):
-        """Tìm kiếm nhân viên"""
-        query = query.strip().lower()
-        
-        if not query:  # Nếu ô tìm kiếm trống
-            self.show_employee_table(self.all_employees_data)
+    def load_all_transactions(self):
+        conn = self.get_db_connection()
+        if not conn:
+            self.show_transaction_error("Không thể kết nối database")
             return
-        
-        # Lọc dữ liệu
-        filtered_data = [
-            row for row in self.all_employees_data
-            if (query in str(row[0]).lower()) or  # Tìm theo ID
-            (query in row[1].lower())          # Tìm theo tên
-        ]
-        
-        self.show_employee_table(filtered_data)
 
-    def refresh_employees(self):
-        """Làm mới danh sách"""
-        self.load_all_employees()
-
-    def load_all_transaction(self):
-        """Tải danh sách giao dịch"""
         try:
-            conn = mysql.connector.connect(
-                host="localhost",
-                user="root",
-                password="Nhan220405",
-                database="PROJECT"
-            )
-            cursor = conn.cursor()
-            
+            cursor = conn.cursor(dictionary=True)
             cursor.execute("""
                 SELECT 
-                    trans_id, trans_type_id, cus_account_id, related_cus_account_id,
-                    trans_amount, DATE_FORMAT(trans_time, '%d/%m/%Y %H:%i:%s'), 
-                    trans_status, trans_error_code
-                FROM TRANSACTION 
+                    trans_id, 
+                    trans_type_id, 
+                    cus_account_id, 
+                    related_cus_account_id,
+                    trans_amount,
+                    DATE_FORMAT(trans_time, '%d/%m/%Y %H:%i:%s') as trans_time,
+                    trans_status,
+                    trans_error_code
+                FROM transactions
                 ORDER BY trans_time DESC
+                LIMIT 100
             """)
-            
             self.all_transactions_data = cursor.fetchall()
             self.show_transactions_table(self.all_transactions_data)
-            
-        except Exception as e:
+        except Error as e:
             print("Lỗi khi tải giao dịch:", e)
-            if hasattr(self.ids, 'placeholder'):
-                self.ids.placeholder.text = f"Lỗi khi tải dữ liệu: {str(e)}"
+            self.show_transaction_error(f"Lỗi khi tải dữ liệu: {str(e)}")
         finally:
-            if 'conn' in locals() and conn.is_connected():
+            if conn.is_connected():
                 cursor.close()
                 conn.close()
 
     def show_transactions_table(self, data):
-        """Hiển thị bảng dữ liệu giao dịch"""
-        # Xóa placeholder nếu có
-        if hasattr(self.ids, 'placeholder'):
-            self.ids.table_container.remove_widget(self.ids.placeholder)
-        # Xóa bảng cũ nếu tồn tại
-        if self.data_trans_table:
-            self.ids.table_container.remove_widget(self.data_trans_table)
-        
-        # Tạo bảng mới
+        container = self.ids.get('trans_table_container')
+        if not container:
+            return
+
+        if not self._trans_placeholder:
+            self._trans_placeholder = self.ids.get('trans_placeholder')
+
+        container.clear_widgets()
+
+        if not data:
+            if self._trans_placeholder:
+                self._trans_placeholder.text = "Không có dữ liệu giao dịch"
+                container.add_widget(self._trans_placeholder)
+            return
+
         self.data_trans_table = MDDataTable(
             size_hint=(1, None),
-            height=max(len(data) * dp(50), dp(300)),
+            height=min(len(data) * dp(50), dp(500)),
             column_data=[
                 ("ID", dp(30)),
-                ("Type", dp(40)),
-                ("CUS ID", dp(40)),
-                ("RELATED ID", dp(50)),
-                ("AMOUNT", dp(40)),
-                ("TIME", dp(60)),
-                ("STATUS", dp(40)),
-                ("ERROR", dp(40)),
+                ("Loại", dp(40)),
+                ("Tài khoản", dp(50)),
+                ("Tài khoản liên quan", dp(60)),
+                ("Số tiền", dp(40)),
+                ("Thời gian", dp(60)),
+                ("Trạng thái", dp(40)),
+                ("Mã lỗi", dp(40)),
             ],
-            row_data=data,
-            use_pagination=False,
-            background_color_header="#1e88e5",
-            background_color_cell="#e3f2fd",
-            background_color_selected_cell="#b3e5fc",
+            row_data=[(
+                row['trans_id'],
+                row['trans_type_id'],
+                row['cus_account_id'],
+                row['related_cus_account_id'] or "",
+                f"{row['trans_amount']:,.0f}",
+                row['trans_time'],
+                row['trans_status'],
+                row['trans_error_code'] or ""
+            ) for row in data],
+            use_pagination=True,
+            rows_num=10,
+            background_color_header="#F2F2F2",
+            background_color_cell="#EAE4D5",
         )
-        self.ids.table_container.add_widget(self.data_trans_table)
-        print("Đã hiển thị bảng dữ liệu giao dịch")
+        container.add_widget(self.data_trans_table)
 
-    def search_transactions(self, query):
-        """Tìm kiếm giao dịch"""
-        query = query.strip().lower()
+    def show_transaction_details(self, transaction):
+        try:
+            content = (
+                f"[b]Transaction ID:[/b] {transaction['trans_id']}\n"
+                f"[b]Type:[/b] {transaction['trans_type_id']}\n"
+                f"[b]Account ID:[/b] {transaction['cus_account_id']}\n"
+                f"[b]Amount:[/b] {transaction.get('trans_amount', 'N/A')}\n"
+                f"[b]Date:[/b] {transaction.get('trans_time', 'N/A')}"
+            )
+
+            dialog = MDDialog(
+                title="Chi tiết giao dịch",
+                text=content,
+                buttons=[
+                    MDFlatButton(text="ĐÓNG", on_release=lambda x: dialog.dismiss())
+                ]
+            )
+            dialog.open()
+        except Exception as e:
+            print("Lỗi khi hiển thị chi tiết giao dịch:", e)
+
+    def load_transactions(self, search_term=""):
+        if not self.all_transactions_data:  # Nếu chưa có dữ liệu
+            return
         
-        if not query:
+        search_term = search_term.strip().lower()
+        
+        if not search_term:  # Nếu không có từ tìm kiếm, hiển thị tất cả
             self.show_transactions_table(self.all_transactions_data)
             return
         
-        filtered_data = [
-            row for row in self.all_transactions_data
-            if (query in str(row[0]).lower()) or  # Tìm theo ID giao dịch
-            (query in str(row[1]).lower()) or    # Tìm theo loại giao dịch
-            (query in str(row[2]).lower())       # Tìm theo ID khách hàng
-        ]
+        # Lọc dữ liệu
+        filtered = []
+        for trans in self.all_transactions_data:
+            if (search_term in str(trans.get('trans_id', '')).lower() or 
+                search_term in str(trans.get('trans_type_id', '')).lower() or 
+                search_term in str(trans.get('cus_account_id', '')).lower() or
+                search_term in str(trans.get('related_cus_account_id', '')).lower()):
+                filtered.append(trans)
         
-        self.show_transactions_table(filtered_data)
+        # Hiển thị kết quả đã lọc
+        self.show_transactions_table(filtered)
+
+    def refresh_employees(self):
+        self.load_all_employees()
 
     def refresh_transactions(self):
-        """Làm mới danh sách giao dịch"""
-        self.load_all_transaction()
+        self.load_all_transactions()
+
+    def show_employee_error(self, message):
+        container = self.ids.emp_table_container
+        container.clear_widgets()
+        self.ids.emp_placeholder.text = message
+        container.add_widget(self.ids.emp_placeholder)
+
+    def show_transaction_error(self, message):
+        container = self.ids.trans_table_container
+        container.clear_widgets()
+        self.ids.trans_placeholder.text = message
+        container.add_widget(self.ids.trans_placeholder)

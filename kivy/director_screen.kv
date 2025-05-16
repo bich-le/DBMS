@@ -90,37 +90,122 @@
 
 
 
+# Màn hình Employees
             MDScreen:
-                name: "transactions"
+                name: "employees"
                 MDBoxLayout:
                     orientation: "vertical"
-                    MDTopAppBar:
-                        title: "Transaction History"
-                        left_action_items: [["menu", lambda x: nav_drawer.set_state("open")]]
+                    spacing: "0dp"
+                    padding: "0dp"
 
-                        # Ô tìm kiếm
+                    # Thanh công cụ
+                    MDTopAppBar:
+                        title: "Employee Management"
+                        left_action_items: [["menu", lambda x: nav_drawer.set_state("open")]]
+                        right_action_items: [["refresh", lambda x: root.refresh_employees()]]
+                        elevation: 10
+
+                    # Ô tìm kiếm và nút thêm mới
                     MDBoxLayout:
                         size_hint_y: None
                         height: "50dp"
                         spacing: "10dp"
                         padding: "10dp", "0dp", "10dp", "0dp"
 
+                        MDTextField:
+                            id: search_field_emp  # Đổi id để phân biệt
+                            hint_text: "Search Employee"
+                            mode: "fill"
+                            size_hint_x: 0.2
+                            height: "30dp"
+                            icon_right: "magnify"
+                            on_text: root.search_employees(self.text)
 
                         Widget:
-                            size_hint_x: 0.8
-                        # Bảng dữ liệu - Phần cần chỉnh sửa
+                            size_hint_x: 0.2
+
+                        MDRectangleFlatIconButton:
+                            text: "Add Employees"
+                            size_hint_x: 0.15
+                            md_bg_color: [0.9, 0.9, 0.9, 1]
+                            text_color: [0.2, 0.2, 0.2, 1]
+                            line_color: [0.7, 0.7, 0.7, 1]
+                            on_release: root.show_add_employee_dialog()
+
+                        MDRectangleFlatIconButton:
+                            text: "Delete Employees"
+                            size_hint_x: 0.15
+                            md_bg_color: [0.9, 0.9, 0.9, 1]
+                            text_color: [0.2, 0.2, 0.2, 1]
+                            line_color: [0.7, 0.7, 0.7, 1]
+
+                    # Bảng dữ liệu nhân viên
                     ScrollView:
-                        size_hint: 1, 1
-                        bar_width: "8dp"
-                        bar_color: app.theme_cls.primary_color
-                        
                         MDBoxLayout:
-                            id: table_container
+                            id: emp_table_container  # Đổi id để phân biệt
                             orientation: "vertical"
                             size_hint_y: None
                             height: self.minimum_height
                             padding: "10dp"
-                            spacing: "2dp"  # Giảm khoảng cách giữa các dòng
+                            spacing: "2dp"
+
+                            MDLabel:
+                                id: emp_placeholder
+                                text: "Loading employees..."
+                                halign: "center"
+                                font_style: "H6"
+                                size_hint_y: None
+                                height: "300dp"
+
+            # Màn hình Transactions
+            MDScreen:
+                name: "transactions"
+                MDBoxLayout:
+                    orientation: "vertical"
+                    spacing: "0dp"
+                    padding: "0dp"
+
+                    MDTopAppBar:
+                        title: "Transaction History"
+                        left_action_items: [["menu", lambda x: nav_drawer.set_state("open")]]
+                        right_action_items: [["refresh", lambda x: root.refresh_transactions()]]
+
+                    # Ô tìm kiếm giao dịch
+                    MDBoxLayout:
+                        size_hint_y: None
+                        height: "50dp"
+                        spacing: "10dp"
+                        padding: "10dp", "0dp", "10dp", "0dp"
+
+                        MDTextField:
+                            id: search_field_trans  # Đổi id để phân biệt
+                            hint_text: "Search Transactions"
+                            mode: "fill"
+                            size_hint_x: 0.2
+                            height: "30dp"
+                            icon_right: "magnify"
+                            on_text_validate: root.load_transactions(self.text)
+
+                        Widget:
+                            size_hint_x: 0.8
+
+                    # Bảng dữ liệu giao dịch
+                    ScrollView:
+                        MDBoxLayout:
+                            id: trans_table_container  # Đổi id để phân biệt
+                            orientation: "vertical"
+                            size_hint_y: None
+                            height: self.minimum_height
+                            padding: "10dp"
+                            spacing: "2dp"
+
+                            MDLabel:
+                                id: trans_placeholder
+                                text: "Loading transactions..."
+                                halign: "center"
+                                font_style: "H6"
+                                size_hint_y: None
+                                height: "300dp"
             MDScreen:
                 name: "history"
                 MDBoxLayout:
