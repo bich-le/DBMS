@@ -38,12 +38,27 @@
                                 MDList:
                                     id: customer_list
 
-                            MDRaisedButton:
-                                text: "Show Table"
+                            BoxLayout:
+                                orientation: 'vertical'
                                 size_hint_y: None
-                                height: dp(48)
-                                pos_hint: {"x": 0}
-                                on_release: root.show_customer_table()
+                                height: dp(110)  # 2 nút x 48 + khoảng cách
+
+                                MDRaisedButton:
+                                    text: "Show Table"
+                                    size_hint_y: None
+                                    height: dp(48)
+                                    size_hint_x: 1
+                                    on_release: root.show_customer_table()
+
+                                Widget:
+                                    size_hint_y: None
+                                    height: dp(14)  # khoảng cách giữa 2 nút
+
+                                MDRaisedButton:
+                                    text: "Edit Customer"
+                                    size_hint_y: None
+                                    height: dp(48)
+                                    size_hint_x: 1
 
                         # Right panel - Customer details
                         MDBoxLayout:
