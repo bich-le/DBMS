@@ -31,12 +31,14 @@ DELIMITER ;
 -- add new customer
 DELIMITER //
 CREATE PROCEDURE add_customer(
-    IN p_FirstName VARCHAR(50),
-    IN p_LastName VARCHAR(50),
-    IN p_Address VARCHAR(100),
-    IN p_PhoneNumber VARCHAR(15),
-    IN p_Gender VARCHAR(10),
-    IN p_identification_id VARCHAR(20)
+    IN p_cus_first_name VARCHAR(50),
+    IN p_cus_last_name VARCHAR(50),
+    IN p_cus_dob DATE,
+    IN p_cus_address VARCHAR(100),
+    IN p_cus_phone_num VARCHAR(15),
+    IN p_cus_sex VARCHAR(10),
+    IN p_identification_id VARCHAR(20),
+    IN p_branch_id
 )
 BEGIN
     DECLARE customer_count INT;
@@ -50,10 +52,18 @@ BEGIN
         SIGNAL SQLSTATE '45000' 
         SET MESSAGE_TEXT = 'Identification ID already exists';
     ELSE
-        INSERT INTO Customers (
-            FirstName, LastName, Address, PhoneNumber, Gender, identification_id
+        INSERT INTO CUSTOMERS (
+    cus_first_name,
+    cus_last_name,
+    cus_dob,
+    cus_email,
+    cus_address,
+    cus_phone_num,
+    cus_sex,
+    cus_identification_id,
+    branch_id, 
         ) VALUES (
-            p_FirstName, p_LastName, p_Address, p_PhoneNumber, p_Gender, p_identification_id
+    p_cus_first_name, p_cus_last_name, p_cus_dob, p_cus_address, p_cus_phone_num, p_cus_sex, p_identification_id, p_branch_id
         );
     END IF;
 END;

@@ -50,7 +50,7 @@ class MainScreen(MDScreen):
         result = app.verify_login_and_get_position(username, password)
         if result:
             status = result['status']
-            position = result['emp_position']
+            position = result['emp_position_id']
             app.current_role = position.lower()
 
 
@@ -109,12 +109,12 @@ class MyApp(MDApp):
                 host="localhost",
                 user="root",
                 password="Nhan220405",
-                database="PROJECT"
+                database="main"
             )
             cursor = conn.cursor(dictionary=True)
             query = """
-                SELECT e.emp_position, a.status
-                FROM EMPLOYEE_ACCOUNT a
+                SELECT e.emp_position_id, a.status
+                FROM EMPLOYEE_ACCOUNTS a
                 JOIN EMPLOYEES e ON a.emp_id = e.emp_id
                 WHERE a.username = %s AND a.password_hash = %s 
             """

@@ -97,10 +97,30 @@
                     MDTopAppBar:
                         title: "Transaction History"
                         left_action_items: [["menu", lambda x: nav_drawer.set_state("open")]]
-                    MDLabel:
-                        text: "Transaction history content"
-                        halign: "center"
 
+                        # Ô tìm kiếm
+                    MDBoxLayout:
+                        size_hint_y: None
+                        height: "50dp"
+                        spacing: "10dp"
+                        padding: "10dp", "0dp", "10dp", "0dp"
+
+
+                        Widget:
+                            size_hint_x: 0.8
+                        # Bảng dữ liệu - Phần cần chỉnh sửa
+                    ScrollView:
+                        size_hint: 1, 1
+                        bar_width: "8dp"
+                        bar_color: app.theme_cls.primary_color
+                        
+                        MDBoxLayout:
+                            id: table_container
+                            orientation: "vertical"
+                            size_hint_y: None
+                            height: self.minimum_height
+                            padding: "10dp"
+                            spacing: "2dp"  # Giảm khoảng cách giữa các dòng
             MDScreen:
                 name: "history"
                 MDBoxLayout:
