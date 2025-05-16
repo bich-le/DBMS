@@ -145,46 +145,12 @@ INSERT INTO TRANSACTIONS  (
 -- Tạo khách hàng mới
 select * from event_log;
 select * from suspicions;
--- Gắn tài khoản với khách hàng
-INSERT INTO CUSTOMER_ACCOUNTS (
-    cus_account_id, cus_id, cus_account_status, cus_account_type_id
-)
-VALUES (
-    'ACC003', 'CUS001', 'Active', 'C'
-);
-UPDATE CHECK_ACCOUNTS
-SET check_acc_balance = 200000000
-    WHERE cus_account_id = "ACC003" ;
-INSERT INTO TRANSACTIONS (
-    trans_id, trans_type_id, cus_account_id, related_cus_account_id, trans_amount,
-    direction, trans_time, last_updated, trans_status
-)
-VALUES (
-    'AS301', 'TRF', 'ACC003', 'ACC001', 100000, 'Debit',
-    DATE_SUB(NOW(), INTERVAL 100 DAY), DATE_SUB(NOW(), INTERVAL 100 DAY), 'Successful'
-);
-INSERT INTO TRANSACTIONS (
-    trans_id, trans_type_id, cus_account_id, related_cus_account_id, trans_amount,
-    direction, trans_time, last_updated, trans_status
-)
-VALUES (
-    'AS302', 'TRF', 'ACC003', 'ACC001', 80000000, 'Debit',
-    NOW(), NOW(), 'Successful'
-);
-select * from debug_log_2;
-select * from TEMP_suspicions;
-select * from suspicions;
-
-SELECT count(*)
-FROM SUSPICIONS s
-JOIN TRANSACTIONS t ON s.trans_id = t.trans_id
-WHERE t.cus_account_id = 'ACC002'
-	AND s.severity_level = 'High'
-    AND s.suspicion_status != 'False_positive';
 
 
 
--- INSERT INTO CHECK_ACCOUNTS VALUES ('DTNBC25000011', 50000000 ,1, 100000, 1000000);
--- INSERT INTO TRANSACTIONS VALUES ('TXN007', 'TRF', 'DTNBC25000011', 'DTNBS25000001', 500000, 'Debit', NOW(), NOW(), 'Successful', NULL);
 
 
+
+########LỖI RÚT TIỀN TRƯỚC KỲ HẠN CỦA FIXED_DEPOSIT_ACCOUNTS (TRIGGER after_insert_customer_account)
+INSERT INTO TRANSACTIONS (trans_type_id, cus_account_id, related_cus_account_id, trans_amount, direction, trans_time, last_updated) VALUES
+('WDL', 'DTNBF250000001', 'INVALID123', 15000000, 'Debit', '2025-05-15 14:00:00', '2025-05-15 14:00:00');
