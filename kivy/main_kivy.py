@@ -26,6 +26,8 @@ from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDFlatButton
 from kivymd.uix.screen import MDScreen
 from kivy.lang import Builder
+from kivy.metrics import dp
+from kivymd.uix.datatables import MDDataTable
 
 from director_screen import DirectorScreen
 from teller_screen import TellerScreen
@@ -50,20 +52,21 @@ class MainScreen(MDScreen):
         result = app.verify_login_and_get_position(username, password)
         if result:
             status = result['status']
-            position = result['emp_position']
-            app.current_role = position.lower()
-
+            position = result['emp_position_id']
 
             if status == 'Active':
                 app.root.transition.direction = "left"
                 app.root.current = position.lower()
             elif status == 'Inactive':
-                self.show_login_error_dialog("This account is inactive.")
-            elif status == 'Suspended':
-                self.show_login_error_dialog("This account has been suspended.")
+                self.show_login_error_dialog("This account is Inactive.")
+            elif status == 'Temporarily Suspended':
+                self.show_login_error_dialog("This account has been Temporarily Suspended.")
+            elif status == 'Permanently Suspended':
+                self.show_login_error_dialog("This account has been Permanently Suspended.")
             else:
                 self.show_login_error_dialog("Unknown account status.")
         else:
+            print(result)
             self.show_login_error_dialog("Wrong login information.")
             
     def show_login_error_dialog(self, message):
@@ -94,10 +97,10 @@ class MyApp(MDApp):
         Builder.load_file("auditor_screen.kv")
         sm = MDScreenManager()
         sm.add_widget(MainScreen(name="main"))
-        sm.add_widget(DirectorScreen(name="director"))
-        sm.add_widget(TellerScreen(name="teller"))
-        sm.add_widget(ManagerScreen(name="manager"))
-        sm.add_widget(AuditorScreen(name="auditor"))
+        sm.add_widget(DirectorScreen(name="c"))
+        sm.add_widget(TellerScreen(name="t"))
+        sm.add_widget(ManagerScreen(name="m"))
+        sm.add_widget(AuditorScreen(name="a"))
         return sm
     
     def hash_password(self,password):
@@ -107,14 +110,14 @@ class MyApp(MDApp):
         try:
             conn = mysql.connector.connect(
                 host="localhost",
-                user="dongiz",
-                password="@Dong442005",
-                database="PROJECT"
+                user="root",
+                password="Bichthebest3805",
+                database="main"
             )
             cursor = conn.cursor(dictionary=True)
             query = """
-                SELECT e.emp_position, a.status
-                FROM EMPLOYEE_ACCOUNT a
+                SELECT e.emp_position_id, a.status
+                FROM EMPLOYEE_ACCOUNTS a
                 JOIN EMPLOYEES e ON a.emp_id = e.emp_id
                 WHERE a.username = %s AND a.password_hash = %s 
             """
@@ -122,7 +125,7 @@ class MyApp(MDApp):
             cursor.execute(query, (username, hashed_password))
             result = cursor.fetchone()
             conn.close()
-            return result  # sẽ trả về dict chứa emp_position và status nếu đúng
+            return result  # sẽ trả về dict chứa emp_position_id và status nếu đúng
         except mysql.connector.Error as err:
             print("DB error:", err)
             return None
