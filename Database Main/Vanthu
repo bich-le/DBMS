@@ -1747,13 +1747,6 @@ select * from event_log;
 select * from TEMP_suspicions;
 select * from suspicions;
 
-SELECT count(*)
-FROM SUSPICIONS s
-JOIN TRANSACTIONS t ON s.trans_id = t.trans_id
-WHERE t.cus_account_id = 'ACC002'
-	AND s.severity_level = 'High'
-    AND s.suspicion_status != 'False_positive';
-
 
 
 -- INSERT INTO CHECK_ACCOUNTS VALUES ('DTNBC25000011', 50000000 ,1, 100000, 1000000);
