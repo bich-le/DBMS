@@ -20,7 +20,7 @@
                     orientation: "vertical"
                     MDTopAppBar:
                         title: "Interest Rate"
-                        left_action_items: [["menu", lambda x: app.root.get_screen("t").ids.nav_drawer.set_state("open")]]
+                        left_action_items: [["menu", lambda x: app.root.get_screen("m").ids.nav_drawer.set_state("open")]]
                     MDLabel:
                         text: "Interest rate content"
                         halign: "center"
@@ -42,7 +42,7 @@
                     orientation: "vertical"
                     MDTopAppBar:
                         title: "Reports"
-                        left_action_items: [["menu", lambda x: app.root.get_screen("t").ids.nav_drawer.set_state("open")]]
+                        left_action_items: [["menu", lambda x: app.root.get_screen("m").ids.nav_drawer.set_state("open")]]
                     ReportBox:
                         id: report_box
 
@@ -52,7 +52,7 @@
                     orientation: "vertical"
                     MDTopAppBar:
                         title: "Suspicion"
-                        left_action_items: [["menu", lambda x: app.root.get_screen("t").ids.nav_drawer.set_state("open")]]
+                        left_action_items: [["menu", lambda x: app.root.get_screen("m").ids.nav_drawer.set_state("open")]]
                     MDLabel:
                         text: "Suspicion content"
                         halign: "center"
@@ -63,7 +63,7 @@
                     orientation: "vertical"
                     MDTopAppBar:
                         title: "System History"
-                        left_action_items: [["menu", lambda x: app.root.get_screen("t").ids.nav_drawer.set_state("open")]]
+                        left_action_items: [["menu", lambda x: app.root.get_screen("m").ids.nav_drawer.set_state("open")]]
                     MDLabel:
                         text: "System history content"
                         halign: "center"
@@ -148,7 +148,7 @@
         orientation: "vertical"
         MDTopAppBar:
             title: "Customer Management"
-            left_action_items: [["menu", lambda x: app.root.get_screen("t").ids.nav_drawer.set_state("open")]]
+            left_action_items: [["menu", lambda x: app.root.get_screen("m").ids.nav_drawer.set_state("open")]]
         MDBoxLayout:
             orientation: "horizontal"
             padding: dp(10)
