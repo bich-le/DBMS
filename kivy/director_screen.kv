@@ -8,82 +8,6 @@
                 id: customers_screen
                 name: "customers"
 
-            # Màn hình Employees
-            EmployeeScreen:
-                id: employees_screen
-                name: "employees"
-                MDBoxLayout:
-                    orientation: "vertical"
-                    spacing: "0dp"
-                    padding: "0dp"
-                    size_hint: 1,1
-
-                    # Thanh công cụ
-                    MDTopAppBar:
-                        title: "Employee Management"
-                        left_action_items: [["menu", lambda x: nav_drawer.set_state("open")]]
-                        right_action_items: [["refresh", lambda x: root.refresh_employees()]]
-                        elevation: 10
-
-                    # Ô tìm kiếm và nút thêm mới
-                    MDBoxLayout:
-                        size_hint_y: None
-                        height: "50dp"
-                        spacing: "10dp"
-                        padding: "10dp", "0dp", "10dp", "0dp"
-
-                        MDTextField:
-                            id: search_field
-                            hint_text: "Search Employee"
-                            mode: "fill"
-                            size_hint_x: 0.2
-                            height: "30dp"
-                            icon_right: "magnify"
-                            on_text: root.search_employees(self.text)
-
-                        Widget:
-                            size_hint_x: 0.2
-
-                        MDRectangleFlatIconButton:
-                            text: "Add Employees"
-                            size_hint_x: 0.15
-                            md_bg_color: [0.9, 0.9, 0.9, 1]  # Màu nền xám nhạt
-                            text_color: [0.2, 0.2, 0.2, 1]   # Màu chữ tối
-                            line_color: [0.7, 0.7, 0.7, 1]    # Màu viền (nếu cần)
-
-                            on_release: root.show_add_employee_dialog()
-
-                        MDRectangleFlatIconButton:
-                            text: "Delete Employees"
-                            size_hint_x: 0.15
-                            md_bg_color: [0.9, 0.9, 0.9, 1]  # Màu nền xám nhạt
-                            text_color: [0.2, 0.2, 0.2, 1]   # Màu chữ tối
-                            line_color: [0.7, 0.7, 0.7, 1]    # Màu viền (nếu cần)
-
-                        # Bảng dữ liệu - Phần cần chỉnh sửa
-                    ScrollView:
-                        size_hint: 1, 1
-                        bar_width: "8dp"
-                        bar_color: app.theme_cls.primary_color
-                        
-                        MDBoxLayout:
-                            id: table_container
-                            orientation: "vertical"
-                            size_hint_y: None
-                            height: self.minimum_height
-                            padding: "10dp"
-                            spacing: "2dp"  # Giảm khoảng cách giữa các dòng
-
-                            # Label tạm thời (sẽ bị thay thế bằng bảng)
-                            MDLabel:
-                                id: placeholder
-                                text: "Loading..."
-                                halign: "center"
-                                font_style: "H6"
-                                size_hint_y: None
-                                height: "300dp"
-
-
 
 # Màn hình Employees
             MDScreen:
@@ -170,22 +94,28 @@
                         size_hint_y: None
                         height: "50dp"
                         spacing: "10dp"
-                        padding: "10dp", "0dp", "10dp", "0dp"
+                        padding: "10dp", "50dp", "10dp", "0dp"
 
                         MDTextField:
-                            id: search_field_trans  # Đổi id để phân biệt
+                            id: trans_search_field  # Đổi id để phân biệt
                             hint_text: "Search Transactions"
                             size_hint_x: 0.2
                             height: "30dp"
-                            icon_right: "magnify"
-                            height: dp(48)
                             on_text_validate: root.search_transaction()
                         MDIconButton:
                             icon: "magnify"
                             on_release: root.search_transaction()  # Nút bấm tìm kiếm
 
                         Widget:
-                            size_hint_x: 0.8
+                            size_hint_x: 0.65
+
+                        MDRectangleFlatIconButton:
+                            text: "Add Transaction"
+                            size_hint_x: 0.15
+                            md_bg_color: [0.9, 0.9, 0.9, 1]
+                            text_color: [0.2, 0.2, 0.2, 1]
+                            line_color: [0.7, 0.7, 0.7, 1]
+                            on_release: root.show_add_transaction_dialog()
 
                     # Bảng dữ liệu giao dịch
                     ScrollView:

@@ -4,10 +4,14 @@ from kivymd.uix.list import TwoLineListItem
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDFlatButton
 from kivy.metrics import dp
+from kivy.uix.boxlayout import BoxLayout
 import mysql.connector
 from mysql.connector import Error
 from kivymd.uix.label import MDLabel
-from kivy.uix.boxlayout import BoxLayout
+from kivymd.uix.boxlayout import MDBoxLayout
+from kivymd.toast import toast
+from kivymd.uix.textfield import MDTextField
+from datetime import datetime
 
 
 class DirectorScreen(MDScreen):
@@ -40,92 +44,6 @@ class DirectorScreen(MDScreen):
         except Error as e:
             print("Database connection error:", e)
             return None
-
-    def load_all_employees(self):
-        conn = self.get_db_connection()
-        if not conn:
-            self.show_employee_error("Không thể kết nối database")
-            return
-
-        try:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute("""
-                SELECT 
-                    emp_id,
-                    emp_fullname, 
-                    emp_position_id,
-                    emp_phone_num,
-                    emp_email,
-                    DATE_FORMAT(emp_join_date, '%d/%m/%Y') as emp_join_date
-                FROM employees
-                ORDER BY 
-                    CASE emp_position_id
-                        WHEN 'Director' THEN 1
-                        WHEN 'Manager' THEN 2
-                        WHEN 'Auditor' THEN 3
-                        WHEN 'Teller' THEN 4
-                        ELSE 5
-                    END,
-                    emp_fullname
-            """)
-            self.all_employees_data = cursor.fetchall()
-            self.show_employee_table(self.all_employees_data)
-        except Error as e:
-            print("Lỗi khi tải nhân viên:", e)
-            self.show_employee_error(f"Lỗi khi tải dữ liệu: {str(e)}")
-        finally:
-            if conn.is_connected():
-                cursor.close()
-                conn.close()
-
-    def show_employee_table(self, data):
-        container = self.ids.get('emp_table_container')
-        if not container:
-            return
-
-        if not self._emp_placeholder:
-            self._emp_placeholder = self.ids.get('emp_placeholder')
-
-        container.clear_widgets()
-
-        if not data:
-            if self._emp_placeholder:
-                self._emp_placeholder.text = "Không có dữ liệu nhân viên"
-                container.add_widget(self._emp_placeholder)
-            return
-
-        self.data_emp_table = MDDataTable(
-            size_hint=(1, None),
-            height=min(len(data) * dp(50), dp(500)),
-            column_data=[
-                ("ID", dp(30)),
-                ("Họ tên", dp(50)),
-                ("Chức vụ", dp(40)),
-                ("SĐT", dp(40)),
-                ("Email", dp(60)),
-                ("Ngày vào", dp(40)),
-            ],
-            row_data=[(
-                row['emp_id'],
-                row['emp_fullname'],
-                row['emp_position_id'],
-                row['emp_phone_num'],
-                row['emp_email'],
-                row['emp_join_date']
-            ) for row in data],
-            use_pagination=True,
-            rows_num=10,
-            background_color_header="#1e88e5",
-            background_color_cell="#e3f2fd",
-        )
-        container.add_widget(self.data_emp_table)
-
-
-
-
-
-
-
 
 
     def load_all_transactions(self):
@@ -180,10 +98,10 @@ class DirectorScreen(MDScreen):
             size_hint=(1, None),
             height=min(len(data) * dp(50), dp(500)),
             column_data=[
-                ("ID", dp(30)),
-                ("Loại", dp(40)),
+                ("ID", dp(50)),
+                ("Loại", dp(20)),
                 ("Tài khoản", dp(50)),
-                ("Tài khoản liên quan", dp(60)),
+                ("Tài khoản liên quan", dp(50)),
                 ("Số tiền", dp(40)),
                 ("Thời gian", dp(60)),
                 ("Trạng thái", dp(40)),
@@ -225,52 +143,159 @@ class DirectorScreen(MDScreen):
         self.ids.trans_placeholder.text = message
         container.add_widget(self.ids.trans_placeholder)
 
-        def search_transaction(self):
-            query = self.ids.trans_search_field.text.strip()
-            if not query:
+    def search_transaction(self):
+        # screen = self.ids.screen_manager.get_screen('transactions')
+        query = self.ids.trans_search_field.text.strip()
+
+        if not query:
+            return
+
+        found = None
+        for transaction in self.all_transactions_data:
+            if query in str(transaction['trans_id']):
+                found = transaction
+                break
+
+        if found:
+                    # Hiển thị chi tiết giao dịch dạng từng dòng
+
+            content = MDBoxLayout(orientation="vertical", spacing=10, padding=(10, 10), size_hint_y=None)
+
+            content.bind(minimum_height=content.setter('height'))
+
+            info_data = {
+                "ID": found['trans_id'],
+                "Loại": found.get('trans_type_id', 'N/A'),
+                "Tài khoản": found.get('cus_account_id', 'N/A'),
+                "Tài khoản liên quan": found.get('related_cus_account_id', 'N/A'),
+                "Số tiền": f"{found.get('trans_amount', 0):,.0f}",
+                "Thời gian": found.get('trans_time', 'N/A'),
+                "Trạng thái": found.get('trans_status', 'N/A'),
+                "Mã lỗi": found.get('trans_error_code', 'Không có'),
+            }
+            for key, value in info_data.items():
+                label = MDLabel(
+                    text=f"{key}: {value}",
+                    halign="left",
+                    size_hint_y=None,
+                    height=dp(30),  # hoặc: height=self.texture_size[1] + dp(10)
+                )
+                content.add_widget(label)
+            dialog = MDDialog(
+                title="Chi tiết giao dịch",
+                type="custom",
+                content_cls=content,
+                buttons=[
+                    MDFlatButton(text="Đóng", on_release=lambda x: dialog.dismiss())
+                ],
+            )
+            dialog.open()
+        else:
+            # Giao dịch không tìm thấy (không thay đổi ở đây)
+            dialog = MDDialog(
+                title="Không tìm thấy",
+                text="Không tìm thấy giao dịch với ID đã nhập.",
+                buttons=[
+                    MDFlatButton(text="OK", on_release=lambda x: dialog.dismiss())
+                ],
+            )
+            dialog.open()
+    def show_add_transaction_dialog(self):
+        if not hasattr(self, 'add_transaction_dialog'):
+            content = BoxLayout(orientation='vertical', spacing='10dp', padding=('20dp', '20dp'), size_hint_y=None)
+            content.bind(minimum_height=content.setter('height'))
+
+            self.trans_type_id_field = MDTextField(hint_text="Loại giao dịch (TRF, ...)")
+            content.add_widget(self.trans_type_id_field)
+
+            self.cus_account_id_field = MDTextField(hint_text="Tài khoản khách hàng")
+            content.add_widget(self.cus_account_id_field)
+
+            self.related_cus_account_id_field = MDTextField(hint_text="Tài khoản liên quan (nếu có)")
+            content.add_widget(self.related_cus_account_id_field)
+
+            self.trans_amount_field = MDTextField(hint_text="Số tiền", input_type='number')
+            content.add_widget(self.trans_amount_field)
+
+            self.direction_field = MDTextField(hint_text="Hướng (Debit/Credit)")
+            content.add_widget(self.direction_field)
+
+            self.trans_status_field = MDTextField(hint_text="Trạng thái (Successful/Failed)", text='Successful') # Default
+            content.add_widget(self.trans_status_field)
+            
+            self.trans_error_code_field = MDTextField(hint_text="Mã lỗi (nếu có)")
+            content.add_widget(self.trans_error_code_field)
+        
+            self.trans_time_field = MDTextField(hint_text="Thời gian (YYYY-MM-DD HH:MM:SS)", text=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+            content.add_widget(self.trans_time_field)
+
+            self.last_updated_field = MDTextField(hint_text="Lần cập nhật (YYYY-MM-DD HH:MM:SS)", text=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+            content.add_widget(self.last_updated_field)
+
+            self.add_transaction_dialog = MDDialog(
+                title="Thêm giao dịch mới",
+                type="custom",
+                content_cls=content,
+                buttons=[
+                    MDFlatButton(text="Hủy", on_release=self.close_add_transaction_dialog),
+                    MDFlatButton(text="Thêm", on_release=self.add_new_transaction_to_db)
+                ]
+            )
+        self.add_transaction_dialog.open()
+
+    def close_add_transaction_dialog(self, instance):
+        self.add_transaction_dialog.dismiss()
+
+    def add_new_transaction_to_db(self, instance):
+            trans_type_id = self.trans_type_id_field.text
+            cus_account_id = self.cus_account_id_field.text
+            related_cus_account_id = self.related_cus_account_id_field.text or None
+            trans_amount = self.trans_amount_field.text
+            direction = self.direction_field.text
+            trans_status = self.trans_status_field.text
+            trans_error_code = self.trans_error_code_field.text or None
+            trans_time = self.trans_time_field.text
+            last_updated = self.last_updated_field.text
+
+            if not all([trans_type_id, cus_account_id, trans_amount, direction]):
+                toast("Vui lòng điền đầy đủ các trường bắt buộc.")
                 return
 
-            found = None
-            for transaction in self.all_transactions_data:
-                if query in str(transaction['trans_id']):
-                    found = transaction
-                    break
+            conn = self.get_db_connection()
+            if conn is None:
+                return
 
-            if found:
-                # Hiển thị chi tiết giao dịch dạng từng dòng
-                content = BoxLayout(orientation="vertical", spacing=10, size_hint_y=None)
-                content.bind(minimum_height=content.setter('height'))
+            mycursor = conn.cursor()
+            try:
+                mycursor.callproc('AddTransaction', [
+                    trans_type_id, cus_account_id, related_cus_account_id,
+                    int(trans_amount), direction.capitalize(), trans_status, 
+                    trans_error_code, trans_time, last_updated, None, None  # Truyền None cho các tham số OUT
+                ])
+                conn.commit()
+                mycursor.execute("SELECT @AddTransaction_1, @AddTransaction_2")
+                results = mycursor.fetchone()
+                if results:
+                    result_message = results[0]
+                    error_code = results[1]
 
-                info_lines = [
-                    f"1. ID: {found['trans_id']}",
-                    f"2. Loại: {found['trans_type_id']}",
-                    f"3. Tài khoản: {found['cus_account_id']}",
-                    f"4. Tài khoản liên quan: {found['related_cus_account_id'] or 'N/A'}",
-                    f"5. Số tiền: {found['trans_amount']:,.0f}",
-                    f"6. Thời gian: {found['trans_time']}",
-                    f"7. Trạng thái: {found['trans_status']}",
-                    f"8. Mã lỗi: {found['trans_error_code'] or 'Không có'}",
-                ]
+                    toast(result_message)
+                    if error_code == 'SUCCESS':
+                        toast("Giao dịch thành công!")
+                        self.load_all_transactions() # Tải lại dữ liệu sau khi thêm thành công
+                        self.close_add_transaction_dialog(None)
+                        self.ids.screen_manager.current = 'transactions'
+                    else:
+                        print(f"Error adding transaction: {result_message} (Code: {error_code})")
+                else:
+                    toast("Lỗi khi nhận kết quả từ stored procedure.")
 
-                for line in info_lines:
-                    content.add_widget(MDLabel(text=line, halign="left"))
-
-                dialog = MDDialog(
-                    title="Chi tiết giao dịch",
-                    type="custom",
-                    content_cls=content,
-                    buttons=[
-                        MDFlatButton(text="Đóng", on_release=lambda x: dialog.dismiss())
-                    ],
-                )
-                dialog.open()
-            else:
-                # Giao dịch không tìm thấy
-                dialog = MDDialog(
-                    title="Không tìm thấy",
-                    text="Không tìm thấy giao dịch với ID đã nhập.",
-                    buttons=[
-                        MDFlatButton(text="OK", on_release=lambda x: dialog.dismiss())
-                    ],
-                )
-                dialog.open()
+            except mysql.connector.Error as err:
+                print(f"Database error while adding transaction: {err}")
+                toast(f"Lỗi database: {err}")
+            # except ValueError:
+            #     toast("WRONG")
+            finally:
+                if conn.is_connected():
+                    mycursor.close()
+                    conn.close()
