@@ -134,8 +134,8 @@ END;
 DELIMITER ;
 
 -- Tạo biến đầu ra
-SET @result = '';
-SET @error_code = '';
+-- SET @result = '';
+-- SET @error_code = '';
 -- -- Gọi thủ tục
 -- CALL AddTransaction(
 --     'TRF',                          -- p_trans_type_id
@@ -153,3 +153,67 @@ SET @error_code = '';
 -- select * from transactions;
 -- -- Xem kết quả
 -- SELECT @result, @error_code;
+
+##################################################
+        -- ADD CUSTOMER ACCOUNTS --
+##################################################
+DELIMITER //
+
+CREATE PROCEDURE add_customer_account(
+    IN p_cus_id VARCHAR(17),
+    IN p_cus_account_type_id VARCHAR(2),
+    OUT p_result VARCHAR(255),
+    OUT p_error_code VARCHAR(20)
+)
+proc: BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION 
+    BEGIN
+        ROLLBACK;
+        SET p_result = 'System error occurred';
+        SET p_error_code = 'SYSTEM_ERROR';
+    END;
+
+    SET p_result = '';
+    SET p_error_code = '';
+
+    -- Kiểm tra cus_id tồn tại
+    IF NOT EXISTS (SELECT 1 FROM CUSTOMERS WHERE cus_id = p_cus_id) THEN
+        SET p_result = 'Error: cus_id does not exist';
+        SET p_error_code = 'INVALID_CUS_ID';
+        LEAVE proc;
+    END IF;
+
+    -- Kiểm tra account_type_id tồn tại
+    IF NOT EXISTS (SELECT 1 FROM CUSTOMER_ACCOUNT_TYPES WHERE cus_account_type_id = p_cus_account_type_id) THEN
+        SET p_result = 'Error: account type does not exist';
+        SET p_error_code = 'INVALID_ACCOUNT_TYPE';
+        LEAVE proc;
+    END IF;
+
+    START TRANSACTION;
+
+    -- Thêm tài khoản (không cần truyền cus_account_id)
+    INSERT INTO CUSTOMER_ACCOUNTS (
+        cus_id,
+        cus_account_type_id
+    ) VALUES (
+        p_cus_id,
+        p_cus_account_type_id
+    );
+
+    COMMIT;
+
+    SET p_result = 'Account added successfully';
+    SET p_error_code = 'SUCCESS';
+END //
+
+DELIMITER ;
+-- select * from customers;
+-- CALL add_customer_account(
+-- 	'DTNBDN130000001', 'F',    
+--     @result,                       -- OUT p_result
+--     @error_code  
+-- );
+-- SELECT @result, @error_code;
+
+-- select * from customer_accounts where cus_id = 'DTNBDN130000001';
