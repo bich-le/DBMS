@@ -180,11 +180,14 @@
                         MDTextField:
                             id: search_field_trans  # Đổi id để phân biệt
                             hint_text: "Search Transactions"
-                            mode: "fill"
                             size_hint_x: 0.2
                             height: "30dp"
                             icon_right: "magnify"
-                            on_text: root.load_transactions(self.text)
+                            height: dp(48)
+                            on_text_validate: root.search_transaction()
+                        MDIconButton:
+                            icon: "magnify"
+                            on_release: root.search_transaction()  # Nút bấm tìm kiếm
 
                         Widget:
                             size_hint_x: 0.8

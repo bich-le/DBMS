@@ -6,6 +6,8 @@ from kivymd.uix.button import MDFlatButton
 from kivy.metrics import dp
 import mysql.connector
 from mysql.connector import Error
+from kivymd.uix.label import MDLabel
+from kivy.uix.boxlayout import BoxLayout
 
 
 class DirectorScreen(MDScreen):
@@ -118,6 +120,14 @@ class DirectorScreen(MDScreen):
         )
         container.add_widget(self.data_emp_table)
 
+
+
+
+
+
+
+
+
     def load_all_transactions(self):
         conn = self.get_db_connection()
         if not conn:
@@ -196,49 +206,7 @@ class DirectorScreen(MDScreen):
         )
         container.add_widget(self.data_trans_table)
 
-    def show_transaction_details(self, transaction):
-        try:
-            content = (
-                f"[b]Transaction ID:[/b] {transaction['trans_id']}\n"
-                f"[b]Type:[/b] {transaction['trans_type_id']}\n"
-                f"[b]Account ID:[/b] {transaction['cus_account_id']}\n"
-                f"[b]Amount:[/b] {transaction.get('trans_amount', 'N/A')}\n"
-                f"[b]Date:[/b] {transaction.get('trans_time', 'N/A')}"
-            )
-
-            dialog = MDDialog(
-                title="Chi tiết giao dịch",
-                text=content,
-                buttons=[
-                    MDFlatButton(text="ĐÓNG", on_release=lambda x: dialog.dismiss())
-                ]
-            )
-            dialog.open()
-        except Exception as e:
-            print("Lỗi khi hiển thị chi tiết giao dịch:", e)
-
-    def load_transactions(self, search_term=""):
-        if not self.all_transactions_data:  # Nếu chưa có dữ liệu
-            return
-        
-        search_term = search_term.strip().lower()
-        
-        if not search_term:  # Nếu không có từ tìm kiếm, hiển thị tất cả
-            self.show_transactions_table(self.all_transactions_data)
-            return
-        
-        # Lọc dữ liệu
-        filtered = []
-        for trans in self.all_transactions_data:
-            if (search_term in str(trans.get('trans_id', '')).lower() or 
-                search_term in str(trans.get('trans_type_id', '')).lower() or 
-                search_term in str(trans.get('cus_account_id', '')).lower() or
-                search_term in str(trans.get('related_cus_account_id', '')).lower()):
-                filtered.append(trans)
-        
-        # Hiển thị kết quả đã lọc
-        self.show_transactions_table(filtered)
-
+    
     def refresh_employees(self):
         self.load_all_employees()
 
@@ -256,3 +224,53 @@ class DirectorScreen(MDScreen):
         container.clear_widgets()
         self.ids.trans_placeholder.text = message
         container.add_widget(self.ids.trans_placeholder)
+
+        def search_transaction(self):
+            query = self.ids.trans_search_field.text.strip()
+            if not query:
+                return
+
+            found = None
+            for transaction in self.all_transactions_data:
+                if query in str(transaction['trans_id']):
+                    found = transaction
+                    break
+
+            if found:
+                # Hiển thị chi tiết giao dịch dạng từng dòng
+                content = BoxLayout(orientation="vertical", spacing=10, size_hint_y=None)
+                content.bind(minimum_height=content.setter('height'))
+
+                info_lines = [
+                    f"1. ID: {found['trans_id']}",
+                    f"2. Loại: {found['trans_type_id']}",
+                    f"3. Tài khoản: {found['cus_account_id']}",
+                    f"4. Tài khoản liên quan: {found['related_cus_account_id'] or 'N/A'}",
+                    f"5. Số tiền: {found['trans_amount']:,.0f}",
+                    f"6. Thời gian: {found['trans_time']}",
+                    f"7. Trạng thái: {found['trans_status']}",
+                    f"8. Mã lỗi: {found['trans_error_code'] or 'Không có'}",
+                ]
+
+                for line in info_lines:
+                    content.add_widget(MDLabel(text=line, halign="left"))
+
+                dialog = MDDialog(
+                    title="Chi tiết giao dịch",
+                    type="custom",
+                    content_cls=content,
+                    buttons=[
+                        MDFlatButton(text="Đóng", on_release=lambda x: dialog.dismiss())
+                    ],
+                )
+                dialog.open()
+            else:
+                # Giao dịch không tìm thấy
+                dialog = MDDialog(
+                    title="Không tìm thấy",
+                    text="Không tìm thấy giao dịch với ID đã nhập.",
+                    buttons=[
+                        MDFlatButton(text="OK", on_release=lambda x: dialog.dismiss())
+                    ],
+                )
+                dialog.open()
