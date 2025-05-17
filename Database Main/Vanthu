@@ -1717,32 +1717,7 @@ INSERT INTO TRANSACTIONS  (
 -- Tạo khách hàng mới
 select * from customer_accounts;
 select * from suspicions;
--- Gắn tài khoản với khách hàng
-INSERT INTO CUSTOMER_ACCOUNTS (
-    cus_account_id, cus_id, cus_account_status, cus_account_type_id
-)
-VALUES (
-    'ACC003', 'CUS001', 'Active', 'C'
-);
-UPDATE CHECK_ACCOUNTS
-SET check_acc_balance = 200000000
-    WHERE cus_account_id = "ACC003" ;
-INSERT INTO TRANSACTIONS (
-    trans_id, trans_type_id, cus_account_id, related_cus_account_id, trans_amount,
-    direction, trans_time, last_updated, trans_status
-)
-VALUES (
-    'AS301', 'TRF', 'ACC003', 'ACC001', 100000, 'Debit',
-    DATE_SUB(NOW(), INTERVAL 100 DAY), DATE_SUB(NOW(), INTERVAL 100 DAY), 'Successful'
-);
-INSERT INTO TRANSACTIONS (
-    trans_id, trans_type_id, cus_account_id, related_cus_account_id, trans_amount,
-    direction, trans_time, last_updated, trans_status
-)
-VALUES (
-    'AS302', 'TRF', 'ACC003', 'ACC001', 80000000, 'Debit',
-    NOW(), NOW(), 'Successful'
-);
+
 select * from event_log;
 select * from TEMP_suspicions;
 select * from suspicions;
