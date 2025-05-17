@@ -6,7 +6,7 @@ from kivy.uix.scrollview import ScrollView
 from kivy.metrics import dp
 from kivymd.uix.dialog import MDDialog
 from report_input_dialog import ReportInputDialog
-
+from kivymd.uix.button import MDRaisedButton
 
 class ReportBox(MDBoxLayout):
     def __init__(self, **kwargs):
@@ -94,6 +94,9 @@ class ReportBox(MDBoxLayout):
             icon = IconLeftWidget(icon=icon_name)
             item.add_widget(icon)
             self.mdlist.add_widget(item)
+
+
+    
 
     # Các hàm giả lập (bạn sẽ thay bằng gọi procedure thực tế)
     def show_all_transactions(self, instance):

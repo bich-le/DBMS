@@ -1,33 +1,48 @@
-from kivymd.uix.dialog import MDDialog
-from kivymd.uix.label import MDLabel
 from kivy.uix.scrollview import ScrollView
 from kivymd.uix.boxlayout import MDBoxLayout
+from kivymd.uix.label import MDLabel
+from kivymd.uix.dialog import MDDialog
+from kivymd.uix.button import MDRaisedButton
 
-def show_result_dialog(title, columns, data):
-    # Tạo nội dung bên trong một BoxLayout để scroll
-    content = MDBoxLayout(orientation="vertical", spacing=5, padding=10, size_hint_y=None)
-    content.bind(minimum_height=content.setter("height"))
-
-    # Tiêu đề cột
-    content.add_widget(MDLabel(text=" | ".join(columns), bold=True, halign="left", theme_text_color="Secondary"))
-
-    for row in data:
-        row_text = " | ".join(str(cell) for cell in row)
-        content.add_widget(MDLabel(text=row_text, halign="left"))
-
-    # Simple insight
-    if data:
-        total_txn = len(data)
-        content.add_widget(MDLabel(text=f"\nTotal Transactions: {total_txn}", bold=True, theme_text_color="Custom"))
-
-    # ScrollView chứa nội dung
-    scroll_view = ScrollView(do_scroll_x=True, do_scroll_y=True, size_hint=(1, None), height=400)
-    scroll_view.add_widget(content)
-
+def show_result_dialog(title, columns, rows):
+    from kivymd.uix.datatables import MDDataTable
+    from kivymd.uix.label import MDLabel
+    from kivymd.uix.boxlayout import MDBoxLayout
+    
+    # Tạo layout chứa cả tiêu đề và bảng dữ liệu
+    layout = MDBoxLayout(orientation="vertical", spacing=10, size_hint_y=None)
+    layout.height = 500  # Chiều cao cố định
+    
+    # Thêm tiêu đề
+    title_label = MDLabel(
+        text=f"[size=20][b]{title}[/b][/size]",
+        halign="center",
+        markup=True,
+        size_hint_y=None,
+        height=50
+    )
+    layout.add_widget(title_label)
+    
+    # Thêm bảng dữ liệu
+    table = MDDataTable(
+        size_hint=(1, 1),
+        column_data=[(col, 40) for col in columns],
+        row_data=rows,
+        rows_num=min(10, len(rows))  # Hiển thị tối đa 10 dòng
+    )
+    layout.add_widget(table)
+    
+    # Tạo dialog
     dialog = MDDialog(
-        title=title,
         type="custom",
-        content_cls=scroll_view,
-        buttons=[],
+        content_cls=layout,
+        size_hint=(0.9, 0.8),
+        buttons=[
+            MDRaisedButton(
+                text="ĐÓNG",
+                on_release=lambda x: dialog.dismiss()
+            )
+        ]
     )
     dialog.open()
+    return dialog
