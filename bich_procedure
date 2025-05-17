@@ -1,0 +1,52 @@
+
+-- Insert dữ liệu vào bảng employee_accounts
+INSERT INTO employee_accounts (emp_id, username, password_hash, status, suspension_time, reactivation_time, created_at
+) VALUES
+('HNA180001', 'toan1', SHA2('toan1', 256), 'Active', NULL, NULL, '2018-09-10 00:00:00'),
+('HNA190001', 'toan2', SHA2('toan2', 256), 'Active', NULL, NULL, '2019-11-05 00:00:00'),
+('HNC100001', 'van',   SHA2('van', 256), 'Active', NULL, NULL, '2010-01-15 00:00:00'),
+('HNM150001', 'nhan',  SHA2('nhan', 256), 'Active', NULL, NULL, '2015-03-10 00:00:00'),
+('HNM160001', 'chau',  SHA2('chau', 256), 'Active', NULL, NULL, '2016-05-20 00:00:00'),
+('HNT180001', 'nam',   SHA2('nam', 256), 'Active', NULL, NULL, '2018-02-15 00:00:00'),
+('HNT190001', 'gdich1', SHA2('gdich1', 256), 'Active', NULL, NULL, '2018-02-15 00:00:00'),
+('HNT200001', 'gdich2', SHA2('gdich2', 256), 'Active', NULL, NULL, '2018-02-15 00:00:00');
+
+---------------------- Màn hình Teller ------------------------
+
+-- Procedure lấy thông tin account của khách hàng
+DELIMITER //
+CREATE PROCEDURE GetAccountDetailsById(IN p_account_id VARCHAR(20))
+BEGIN
+    SELECT 
+        ca.*, 
+        cat.cus_account_type_name, 
+        COALESCE(sa.saving_acc_balance, ck.check_acc_balance, fd.deposit_amount) AS balance,
+        COALESCE(sa.interest_rate_id, ck.interest_rate_id, fd.interest_rate_id) AS interest_rate_id,
+        ir.interest_rate_val,
+        ca.opening_date
+    FROM CUSTOMER_ACCOUNTS ca
+    LEFT JOIN CUSTOMER_ACCOUNT_TYPES cat ON ca.cus_account_type_id = cat.cus_account_type_id
+    LEFT JOIN SAVING_ACCOUNTS sa ON ca.cus_account_id = sa.cus_account_id
+    LEFT JOIN CHECK_ACCOUNTS ck ON ca.cus_account_id = ck.cus_account_id
+    LEFT JOIN FIXED_DEPOSIT_ACCOUNTS fd ON ca.cus_account_id = fd.cus_account_id
+    LEFT JOIN INTEREST_RATES ir ON ir.interest_rate_id = COALESCE(sa.interest_rate_id, ck.interest_rate_id, fd.interest_rate_id)
+    WHERE ca.cus_account_id = p_account_id;
+END //
+
+DELIMITER ;
+
+-- View hiện thông tin (general) khách hàng và tài khoản 
+CREATE OR REPLACE VIEW v_customer_summary AS
+SELECT 
+    c.cus_id,
+    CONCAT(c.cus_first_name, ' ', c.cus_last_name) AS customer_name,
+    c.cus_phone_num,
+    c.cus_email,
+    b.branch_name,
+    COUNT(ca.cus_account_id) AS account_count,
+    GROUP_CONCAT(cat.cus_account_type_name SEPARATOR ', ') AS account_types
+FROM CUSTOMERS c
+LEFT JOIN BRANCHES b ON c.branch_id = b.branch_id
+LEFT JOIN CUSTOMER_ACCOUNTS ca ON c.cus_id = ca.cus_id
+LEFT JOIN CUSTOMER_ACCOUNT_TYPES cat ON ca.cus_account_type_id = cat.cus_account_type_id
+GROUP BY c.cus_id;
