@@ -120,7 +120,7 @@ class DirectorScreen(MDScreen):
             use_pagination=True,
             rows_num=10,
             background_color_header="#F2F2F2",
-            background_color_cell="#EAE4D5",
+            background_color_cell="FFFFFF",
         )
         container.add_widget(self.data_trans_table)
 
@@ -272,29 +272,22 @@ class DirectorScreen(MDScreen):
                     int(trans_amount), direction.capitalize(), trans_status, 
                     trans_error_code, trans_time, last_updated, None, None  # Truyền None cho các tham số OUT
                 ])
-                conn.commit()
-                mycursor.execute("SELECT @AddTransaction_1, @AddTransaction_2")
-                results = mycursor.fetchone()
-                if results:
-                    result_message = results[0]
-                    error_code = results[1]
-
-                    toast(result_message)
-                    if error_code == 'SUCCESS':
-                        toast("Giao dịch thành công!")
-                        self.load_all_transactions() # Tải lại dữ liệu sau khi thêm thành công
-                        self.close_add_transaction_dialog(None)
-                        self.ids.screen_manager.current = 'transactions'
-                    else:
-                        print(f"Error adding transaction: {result_message} (Code: {error_code})")
+                
+                # CÁCH ĐÚNG để lấy OUT params trong Python
+                mycursor.execute("SELECT @_AddTransaction_10, @_AddTransaction_11")
+                result = mycursor.fetchone()
+                print("OUT params:", result)  # Giờ sẽ hiển thị đúng giá trị
+                
+                if result and result[1] == 'SUCCESS':
+                    conn.commit()
+                    toast("Thành công!")
                 else:
-                    toast("Lỗi khi nhận kết quả từ stored procedure.")
-
+                    conn.rollback()
+                    toast(result[0] if result else "Lỗi không xác định")
+                    
             except mysql.connector.Error as err:
-                print(f"Database error while adding transaction: {err}")
+                print("MySQL Error:", err)
                 toast(f"Lỗi database: {err}")
-            # except ValueError:
-            #     toast("WRONG")
             finally:
                 if conn.is_connected():
                     mycursor.close()
