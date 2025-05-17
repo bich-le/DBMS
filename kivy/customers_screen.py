@@ -10,7 +10,21 @@ from kivymd.uix.screen import MDScreen
 class CustomerScreen(MDScreen):
     db_connection = None
     cursor = None
-
+    
+    def open_parent_nav_drawer(self):
+        parent = self.parent
+        while hasattr(parent, 'parent'):
+            # Kiểm tra bằng tên thay vì isinstance
+            if hasattr(parent, 'name') and parent.name in ('t', 'm','c'):  # 't' là tên TellerScreen, 'm' là ManagerScreen
+                break
+            parent = parent.parent
+        
+        if parent and hasattr(parent, 'ids') and 'nav_drawer' in parent.ids:
+            parent.ids.nav_drawer.set_state("open")
+        else:
+            print(f"Parent thực tế: {getattr(parent, 'name', 'unknown')}")
+            print(f"IDs có sẵn: {dir(parent.ids) if hasattr(parent, 'ids') else 'Không có ids'}")
+            
     def load_customers(self, search_term=""):
         customer_list = self.ids.customer_list
         customer_list.clear_widgets()

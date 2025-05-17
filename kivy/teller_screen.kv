@@ -3,6 +3,7 @@
 <ReportItem@MDRippleBehavior+OneLineListItem>:
 
 <TellerScreen>:
+    name: "t"
     on_enter: self.ids.screen_manager.current = "customers"
     MDNavigationLayout:
         MDScreenManager:
@@ -142,7 +143,7 @@
         orientation: "vertical"
         MDTopAppBar:
             title: "Customer Management"
-            left_action_items: [["menu", lambda x: app.root.get_screen("t").ids.nav_drawer.set_state("open")]]
+            left_action_items: [["menu", lambda x: root.open_parent_nav_drawer()]]
         MDBoxLayout:
             orientation: "horizontal"
             padding: dp(10)

@@ -16,6 +16,7 @@ from kivymd.uix.datatables import MDDataTable
 
 from customers_screen import *
 from Employees_screen import *
+from Suspicion_screen import SuspicionScreen
 
 class DirectorScreen(MDScreen):
     def __init__(self, **kwargs):
@@ -49,6 +50,9 @@ class DirectorScreen(MDScreen):
 
         elif screen_name == "customers":
             self.ids.customers_screen.load_customers()
+            
+        elif screen_name == "suspicion":
+            self.ids.suspicion_screen.load_data()
         
     def on_leave(self):
         self.close_db_connection()
@@ -67,6 +71,8 @@ class DirectorScreen(MDScreen):
             self.ids.customers_screen.db_connection = self.db_connection
             self.ids.employees_screen.cursor = self.cursor
             self.ids.employees_screen.db_connection = self.db_connection
+            self.ids.suspicion_screen.cursor = self.cursor
+            self.ids.suspicion_screen.db_connection = self.db_connection
         except Error as e:
             print("Database connection error:", e)
             self.show_error_dialog("Không thể kết nối đến cơ sở dữ liệu")
