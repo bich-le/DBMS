@@ -19,7 +19,7 @@ from kivy.lang import Builder
 from report_box import ReportBox
 
 from customers_screen import *
-from Employees_screen import *
+from Employee_branch import *
 
 Builder.load_string("""
 <ReportBox>:

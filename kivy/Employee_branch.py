@@ -4,26 +4,39 @@ from kivymd.uix.button import MDFlatButton
 from kivymd.uix.datatables import MDDataTable
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivy.metrics import dp
+from kivymd.app import MDApp
 from mysql.connector import Error
 from kivymd.uix.screen import MDScreen
 from functools import partial
 
-class EmployeeScreen(MDScreen):
+class BranchEmployeeScreen(MDScreen):
     db_connection = None
     cursor = None
     
     def load_employees(self, search_term=""):
+        print("EmployeeScreen.load_employees CALLED")
         employees_list = self.ids.employees_list
         employees_list.clear_widgets()
         
         try:
+            # Get the current branch_id from the app
+            app = MDApp.get_running_app()
+            current_branch_id = getattr(app, 'current_branch_id', None)
+            print("Current branch ID:", current_branch_id)
+            
             query = """
             SELECT emp_id, emp_fullname, emp_phone_num, emp_email 
             FROM EMPLOYEES
-            WHERE emp_fullname LIKE %s OR emp_id LIKE %s
+            WHERE (emp_fullname LIKE %s OR emp_id LIKE %s)
             """
-            search_pattern = f"%{search_term}%"
-            self.cursor.execute(query, (search_pattern, search_pattern))
+            params = [f"%{search_term}%", f"%{search_term}%"]
+            
+            # Add branch filter if available
+            if current_branch_id:
+                query += " AND branch_id = %s"
+                params.append(current_branch_id)
+                
+            self.cursor.execute(query, tuple(params))
             employees = self.cursor.fetchall()
 
             for employee in employees:
@@ -34,22 +47,18 @@ class EmployeeScreen(MDScreen):
                 )
                 employees_list.add_widget(item)
 
-                
         except Error as e:
             print("Error loading employees:", e)
-            self.show_error_dialog( "Lỗi khi tải danh sách nhân viên")
-
+            self.show_error_dialog("Lỗi khi tải danh sách nhân viên")
 
     def filter_employees(self, search_term):
         self.load_employees(search_term)
 
-
-    def show_employee_details(self, employee,* args):
+    def show_employee_details(self, employee, *args):
         try:
             self.cursor.callproc("GetEmployeeDetailsById", (employee['emp_id'],))
             
             employee_details = None
-            # MySQLdb or pymysql returns results from stored procedure in a special way
             for result in self.cursor.stored_results():
                 employee_details = result.fetchone()
                 break
@@ -66,24 +75,34 @@ class EmployeeScreen(MDScreen):
             details.employee_join_date.text = employee_details['emp_join_date'].strftime('%d/%m/%Y')
             details.employee_email.text = employee_details.get('emp_email', 'N/A')
             details.employee_position.text = employee_details['emp_position_name']
-
             details.employee_dob.text = employee_details['emp_dob'].strftime('%d/%m/%Y') if employee_details.get('emp_dob') else ""
             details.employee_branch.text = employee_details.get('branch_name', '')
 
-
         except Error as e:
             print("Error loading employee details:", e)
-            self.show_error_dialog(self, "Lỗi khi tải thông tin nhân viên")
-
+            self.show_error_dialog("Lỗi khi tải thông tin nhân viên")
 
     def show_employee_table(self):
         try:
-            self.cursor.execute("SELECT * FROM v_employee_summary")
+            # Get the current branch_id from the app
+            app = MDApp.get_running_app()
+            current_branch_id = getattr(app, 'current_branch_id', None)
+            
+            query = "SELECT * FROM v_employee_summary"
+            params = []
+            
+            # Add branch filter if available
+            if current_branch_id:
+                query += " WHERE branch_id = %s"
+                params.append(current_branch_id)
+                
+            self.cursor.execute(query, tuple(params))
             employees = self.cursor.fetchall()
 
             if not employees:
-                self.show_error_dialog( "Không có dữ liệu nhân viên")
+                self.show_error_dialog("Không có dữ liệu nhân viên")
                 return
+            branch_name = employees[0]['branch_name'] if employees and 'branch_name' in employees[0] else ""
 
             data_table = MDDataTable(
                 use_pagination=True,
@@ -108,18 +127,16 @@ class EmployeeScreen(MDScreen):
                 ],
             )
 
-            # Bọc trong layout
             layout = MDBoxLayout(
-                    orientation="vertical",
-                    padding=dp(10),
-                    spacing=dp(10),
-                    adaptive_height=True,
-                )
+                orientation="vertical",
+                padding=dp(10),
+                spacing=dp(10),
+                adaptive_height=True,
+            )
             layout.add_widget(data_table)
             
-            # Tạo dialog chứa data table
             self.table_dialog = MDDialog(
-                title=f"Employee List",
+                title=f"Employees in {branch_name}",
                 type="custom",
                 content_cls=layout,
                 size_hint=(0.95, None),
@@ -130,8 +147,7 @@ class EmployeeScreen(MDScreen):
 
         except Exception as e:
             print("Lỗi khi tải bảng nhân viên:", e)
-            self.show_error_dialog( "Lỗi khi tải bảng nhân viên")
-
+            self.show_error_dialog("Lỗi khi tải bảng nhân viên")
 
     def show_error_dialog(self, message):
         dialog = MDDialog(title="Lỗi", text=message)

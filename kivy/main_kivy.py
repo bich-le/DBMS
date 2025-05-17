@@ -51,7 +51,9 @@ class MainScreen(MDScreen):
         password = self.ids.password.text
         app = MDApp.get_running_app()
         result = app.verify_login_and_get_position(username, password)
-       
+        if result:
+            self.current_branch_id = result['branch_id']
+            app.current_branch_id = result['branch_id']
 
         if result:
             status = result['status']
@@ -120,7 +122,7 @@ class MyApp(MDApp):
             )
             cursor = conn.cursor(dictionary=True)
             query = """
-                SELECT e.emp_position_id, a.status
+                SELECT e.emp_position_id, a.status, e.branch_id
                 FROM EMPLOYEE_ACCOUNTS a
                 JOIN EMPLOYEES e ON a.emp_id = e.emp_id
                 WHERE a.username = %s AND a.password_hash = %s 
