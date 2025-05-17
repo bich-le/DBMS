@@ -120,7 +120,7 @@ class MyApp(MDApp):
             )
             cursor = conn.cursor(dictionary=True)
             query = """
-                SELECT e.emp_position_id, a.status, e.branch_id
+                SELECT e.emp_position_id, a.status
                 FROM EMPLOYEE_ACCOUNTS a
                 JOIN EMPLOYEES e ON a.emp_id = e.emp_id
                 WHERE a.username = %s AND a.password_hash = %s 
