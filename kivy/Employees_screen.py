@@ -45,8 +45,6 @@ class EmployeeScreen(MDScreen):
 
 
     def show_employee_details(self, employee,* args):
-        print("self:", self)
-        print("ids:", self.ids.keys())
         try:
             self.cursor.callproc("GetEmployeeDetailsById", (employee['emp_id'],))
             

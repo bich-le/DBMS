@@ -57,8 +57,8 @@ class DirectorScreen(MDScreen):
         try:
             self.db_connection = mysql.connector.connect(
                 host="localhost",
-                user="dong",
-                password="44444444",
+                user="root",
+                password="Bichthebest3805",
                 database="main"
             )
             self.cursor = self.db_connection.cursor(dictionary=True)

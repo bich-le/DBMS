@@ -114,13 +114,13 @@ class MyApp(MDApp):
         try:
             conn = mysql.connector.connect(
                 host="localhost",
-                user="dong",
-                password="44444444",
+                user="root",
+                password="Bichthebest3805",
                 database="main"
             )
             cursor = conn.cursor(dictionary=True)
             query = """
-                SELECT e.emp_position_id, a.status
+                SELECT e.emp_position_id, a.status, e.branch_id
                 FROM EMPLOYEE_ACCOUNTS a
                 JOIN EMPLOYEES e ON a.emp_id = e.emp_id
                 WHERE a.username = %s AND a.password_hash = %s 
