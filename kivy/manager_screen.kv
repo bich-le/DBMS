@@ -1,6 +1,7 @@
 #:import Clock kivy.clock.Clock
 
 <ManagerScreen>:
+    name: "m"
     on_enter: self.ids.screen_manager.current = "customers"
     MDNavigationLayout:
         MDScreenManager:
@@ -148,7 +149,7 @@
         orientation: "vertical"
         MDTopAppBar:
             title: "Customer Management"
-            left_action_items: [["menu", lambda x: app.root.get_screen("m").ids.nav_drawer.set_state("open")]]
+            left_action_items: [["menu", lambda x: root.open_parent_nav_drawer()]]
         MDBoxLayout:
             orientation: "horizontal"
             padding: dp(10)
@@ -293,8 +294,8 @@
 
         MDTopAppBar:
             title: "Branch Employees Management"
-            left_action_items: [["menu", lambda x: app.root.get_screen("m").ids.nav_drawer.set_state("open")]]
-
+            left_action_items: [["menu", lambda x: root.open_parent_nav_drawer()]]
+            
         MDBoxLayout:
             orientation: "horizontal"
             padding: dp(10)
