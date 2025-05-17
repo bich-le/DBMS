@@ -16,24 +16,6 @@ class SuspicionScreen(MDScreen):
         self.db_connection = None
         self.cursor = None
         self.data_table = None
-        self.connect_to_database()
-
-    def connect_to_database(self):
-        """Establish database connection"""
-        try:
-            self.db_connection = mysql.connector.connect(
-                host="localhost",
-                user="root",
-                password="Bichthebest3805",
-                database="main"
-            )
-            self.cursor = self.db_connection.cursor(dictionary=True)
-            print("Successfully connected to database")
-            return True
-        except Error as e:
-            print(f"Database connection error: {e}")
-            self.show_error_dialog(f"Failed to connect to database: {e}")
-            return False
 
     def load_data(self):
         print("SuspicionScreen.load_data CALLED")
@@ -136,12 +118,4 @@ class SuspicionScreen(MDScreen):
         )
         self.dialog.open()
 
-    def on_pre_leave(self, *args):
-        """Close database connection when leaving screen"""
-        if self.cursor:
-            self.cursor.close()
-        if self.db_connection and self.db_connection.is_connected():
-            self.db_connection.close()
-            print("Database connection closed")
-            
        
