@@ -1,3 +1,5 @@
+#:import Clock kivy.clock.Clock
+
 <DirectorScreen>:
     on_enter: self.ids.screen_manager.current = "customers" 
     MDNavigationLayout:
@@ -78,46 +80,47 @@
                     icon: "account-group"
                     text: "Customers"
                     on_release:
-                        screen_manager.current = "customers"
-                        root.ids.customers_screen.load_customers()
                         nav_drawer.set_state("close")
+                        Clock.schedule_once(lambda dt: setattr(screen_manager, "current", "customers"), 0.1)
+                        Clock.schedule_once(lambda dt: root.ids.customers_screen_teller.load_customers(), 0.1)
+
 
                 DrawerItem:
                     icon: "account"
                     text: "Employees"
                     on_release:
-                        screen_manager.current = "employees"
-                        root.ids.employees_screen.load_employees()
                         nav_drawer.set_state("close")
-
+                        Clock.schedule_once(lambda dt: setattr(screen_manager, "current", "employees"), 0.1)
+                        Clock.schedule_once(lambda dt: root.ids.employees_screen.load_employees(), 0.1)
                 DrawerItem:
                     icon: "history"
                     text: "Transactions"
                     on_release:
-                        screen_manager.current = "transactions"
                         nav_drawer.set_state("close")
-
+                        Clock.schedule_once(lambda dt: setattr(screen_manager, "current", "transactions"), 0.1)
+                        
                 DrawerItem:
                     icon: "account-alert"
                     text: "Suspicion"
                     on_release:
-                        screen_manager.current = "suspicion"
-                        root.ids.suspicion_screen.load_data()
                         nav_drawer.set_state("close")
+                        Clock.schedule_once(lambda dt: setattr(screen_manager, "current", "suspicion"), 0.1)
+                        Clock.schedule_once(lambda dt: root.ids.suspicion_screen.load_data(), 0.1)
+
 
                 DrawerItem:
                     icon: "file-chart"
                     text: "Report"
                     on_release:
-                        screen_manager.current = "report"
                         nav_drawer.set_state("close")
+                        Clock.schedule_once(lambda dt: setattr(screen_manager, "current", "report"), 0.1)
 
                 DrawerItem:
                     icon: "cog"
                     text: "System"
                     on_release:
-                        screen_manager.current = "system"
                         nav_drawer.set_state("close")
+                        Clock.schedule_once(lambda dt: setattr(screen_manager, "current", "system"), 0.1)
 
                 MDNavigationDrawerDivider:
                     height: "1dp"
