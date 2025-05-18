@@ -128,6 +128,9 @@ class BranchEmployeeScreen(MDScreen):
                     ("Phone Number", dp(30)),
                     ("Email", dp(40)),
                     ("Branch", dp(30)),
+                    ("Position", dp(30)),
+                    ("Joined Date", dp(30)),
+                    ('Address', dp(40)),
                 ],
                 row_data=[
                     (
@@ -135,7 +138,10 @@ class BranchEmployeeScreen(MDScreen):
                         employee['emp_fullname'],
                         employee['emp_phone_num'],
                         employee['emp_email'],
-                        employee['branch_name']
+                        employee['branch_name'],
+                        employee['emp_position_name'],
+                        employee['emp_join_date'].strftime('%d/%m/%Y') if employee.get('emp_join_date') else "",
+                        employee['emp_address'],
                     )
                     for employee in employees
                 ],
