@@ -3,6 +3,10 @@ from kivymd.uix.datatables import MDDataTable
 from kivy.metrics import dp
 from kivy.clock import Clock
 import mysql.connector
+from kivymd.app import MDApp
+from kivy.lang import Builder
+from suspicions_screen import *
+from suspicions_screen import SuspicionsScreen
 
 class DirectorScreen(MDScreen):
     all_employees_data = []
@@ -10,18 +14,26 @@ class DirectorScreen(MDScreen):
     dialog = None
 
     def on_enter(self):
-        """Tự động load dữ liệu khi vào màn hình Employees"""
-        if self.ids.screen_manager.current == "employees":
+        current_screen = self.ids.screen_manager.current
+
+        if current_screen == "employees":
             self.load_all_employees()
 
+        elif current_screen == "suspicions":
+            # Xóa widget cũ nếu có
+            self.ids.suspicions_box.clear_widgets()
+
+            suspicion_screen = SuspicionsScreen()
+            self.ids.suspicions_box.add_widget(suspicion_screen)
+            suspicion_screen.load_data()
     def load_all_employees(self):
         """Tải danh sách nhân viên sắp xếp theo chức vụ"""
         try:
             conn = mysql.connector.connect(
                 host="localhost",
                 user="root",
-                password="Nhan220405",
-                database="PROJECT"
+                password="Dance!11230592",
+                database="main"
             )
             cursor = conn.cursor()
             
@@ -124,3 +136,12 @@ class DirectorScreen(MDScreen):
         """Hiển thị dialog thêm nhân viên mới"""
         # Triển khai form thêm nhân viên ở đây
         pass
+
+    def search_suspicious_cases(self, text):
+        # Gọi hàm của widget nghi ngờ con
+        if self.ids.suspicions_box:
+            self.ids.suspicions_box.search_suspicious_cases(text)
+
+
+
+

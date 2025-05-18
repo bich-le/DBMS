@@ -1,3 +1,5 @@
+#:include suspicions_screen.kv
+
 <DirectorScreen>:
     on_enter: self.ids.screen_manager.current = "customers" 
     MDNavigationLayout:
@@ -14,7 +16,7 @@
                     MDLabel:
                         text: "Customer management content"
                         halign: "center"
-            # Màn hình Employees
+
             MDScreen:
                 name: "employees"
                 MDBoxLayout:
@@ -22,14 +24,12 @@
                     spacing: "10dp"
                     padding: "10dp"
 
-                    # Thanh công cụ
                     MDTopAppBar:
                         title: "Quản lý nhân viên"
                         left_action_items: [["menu", lambda x: nav_drawer.set_state("open")]]
                         right_action_items: [["refresh", lambda x: root.refresh_employees()]]
                         elevation: 10
 
-                    # Ô tìm kiếm và nút thêm mới
                     MDBoxLayout:
                         size_hint_y: None
                         height: "60dp"
@@ -50,7 +50,6 @@
                             size_hint_x: 0.3
                             on_release: root.show_add_employee_dialog()
 
-                    # Bảng dữ liệu
                     ScrollView:
                         bar_width: 8
                         bar_color: app.theme_cls.primary_color
@@ -61,7 +60,6 @@
                             height: self.minimum_height
                             padding: "10dp"
 
-                            # Label tạm thời (sẽ bị thay thế bằng bảng)
                             MDLabel:
                                 id: placeholder
                                 text: "Đang tải dữ liệu..."
@@ -69,8 +67,6 @@
                                 font_style: "H6"
                                 size_hint_y: None
                                 height: "300dp"
-
-
 
             MDScreen:
                 name: "transactions"
@@ -95,15 +91,9 @@
                         halign: "center"
 
             MDScreen:
-                name: "suspicion"
-                MDBoxLayout:
-                    orientation: "vertical"
-                    MDTopAppBar:
-                        title: "Suspicious Employees"
-                        left_action_items: [["menu", lambda x: nav_drawer.set_state("open")]]
-                    MDLabel:
-                        text: "Suspicious employees content"
-                        halign: "center"
+                name: "suspicions"
+                SuspicionsScreen:
+                    id: suspicions_screen
 
             MDScreen:
                 name: "report"
@@ -114,7 +104,6 @@
                         left_action_items: [["menu", lambda x: nav_drawer.set_state("open")]]
                     ReportBox:
                         id: report_box
-                       
 
             MDScreen:
                 name: "system"
@@ -163,9 +152,9 @@
 
                 DrawerItem:
                     icon: "account-alert"
-                    text: "Suspicion"
+                    text: "Suspicions"
                     on_release:
-                        screen_manager.current = "suspicion"
+                        screen_manager.current = "suspicions"
                         nav_drawer.set_state("close")
 
                 DrawerItem:

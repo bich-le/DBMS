@@ -35,7 +35,7 @@ from manager_screen import ManagerScreen
 from auditor_screen import AuditorScreen
 import mysql.connector
 import hashlib
-
+from connection import create_connection
 #Builder.load_file("director_screen.kv")
 
 class DrawerItem(MDNavigationDrawerItem):
@@ -110,8 +110,8 @@ class MyApp(MDApp):
         try:
             conn = mysql.connector.connect(
                 host="localhost",
-                user="dong",
-                password="44444444",
+                user="root",
+                password="Dance!11230592",
                 database="main"
             )
             cursor = conn.cursor(dictionary=True)
@@ -125,6 +125,11 @@ class MyApp(MDApp):
             cursor.execute(query, (username, hashed_password))
             result = cursor.fetchone()
             conn.close()
+            return result
+
+
+            result = cursor.fetchone()
+            conn.close()
             return result  # sẽ trả về dict chứa emp_position_id và status nếu đúng
         except mysql.connector.Error as err:
             print("DB error:", err)
@@ -133,4 +138,4 @@ class MyApp(MDApp):
 
 if __name__ == '__main__':
     MyApp().run()
-    
+
