@@ -178,8 +178,8 @@ class ReportInputDialog:
         try:
             conn = mysql.connector.connect(
                 host="localhost",
-                user="root",
-                password="Dance!11230592",
+                user="dong",
+                password="44444444",
                 database="main",
                 connect_timeout=3
             )
@@ -259,8 +259,8 @@ class ReportInputDialog:
         try:
             conn = mysql.connector.connect(
                 host="localhost",
-                user="root",
-                password="Bichthebest3805",
+                user="dong",
+                password="44444444",
                 database="main",
                 autocommit=True
             )
