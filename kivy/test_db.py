@@ -3,8 +3,8 @@ import mysql.connector
 try:
     conn = mysql.connector.connect(
         host="localhost",
-        user="dong",
-        password="44444444",
+        user="root",
+        password="Dance!11230592",
         database="main",
         connect_timeout=3
     )

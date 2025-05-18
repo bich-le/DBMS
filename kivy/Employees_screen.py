@@ -73,7 +73,7 @@ class EmployeeScreen(MDScreen):
 
         except Error as e:
             print("Error loading employee details:", e)
-            self.show_error_dialog(self, "Lỗi khi tải thông tin nhân viên")
+            self.show_error_dialog("Lỗi khi tải thông tin nhân viên")
 
 
     def show_employee_table(self):
