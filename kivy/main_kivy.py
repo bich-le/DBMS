@@ -36,6 +36,7 @@ from auditor_screen import AuditorScreen
 import mysql.connector
 import hashlib
 from connection import create_connection
+
 #Builder.load_file("director_screen.kv")
 # test merge
 
@@ -114,12 +115,10 @@ class MyApp(MDApp):
     
     def verify_login_and_get_position(self, username, password):
         try:
-            conn = mysql.connector.connect(
-                host="localhost",
-                user="root",
-                password="Bichthebest3805",
-                database="main"
-            )
+            conn = create_connection()
+            if not conn:
+                print("Không thể kết nối CSDL")
+                return None
             cursor = conn.cursor(dictionary=True)
             query = """
                 SELECT e.emp_position_id, a.status, e.branch_id

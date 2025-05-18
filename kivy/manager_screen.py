@@ -20,6 +20,7 @@ from report_box import ReportBox
 
 from customers_screen import *
 from Employee_branch import *
+from connection import create_connection  # Thêm dòng này ở đầu file
 
 Builder.load_string("""
 <ReportBox>:
@@ -62,22 +63,16 @@ class ManagerScreen(MDScreen):
         self.close_db_connection()
     
     def connect_to_db(self):
-        try:
-            self.db_connection = mysql.connector.connect(
-                host="localhost",
-                user="root",
-                password="Bichthebest3805",
-                database="main"
-            )
+        self.db_connection = create_connection()
+        if self.db_connection:
             self.cursor = self.db_connection.cursor(dictionary=True)
-            
             self.ids.customers_screen.cursor = self.cursor
             self.ids.customers_screen.db_connection = self.db_connection
             if hasattr(self.ids, "branch_employees_screen"):
                 self.ids.branch_employees_screen.cursor = self.cursor
                 self.ids.branch_employees_screen.db_connection = self.db_connection
-        except Error as e:
-            print("Database connection error:", e)
+        else:
+            print("Database connection error!")
             self.show_error_dialog("Không thể kết nối đến cơ sở dữ liệu")
     
     def close_db_connection(self):
@@ -85,5 +80,4 @@ class ManagerScreen(MDScreen):
             self.cursor.close()
         if self.db_connection and self.db_connection.is_connected():
             self.db_connection.close()
-            
-    
+
