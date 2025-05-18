@@ -1,5 +1,5 @@
 #############################
-	-- VIEW SUSPICIONS
+	-- VIEW SUSPICIONS--
 #############################
 use main;
 SELECT
@@ -57,64 +57,16 @@ CREATE OR REPLACE VIEW fixed_deposit_accounts_view AS
 ########################################
           -- EMPLOYEES--
 ########################################
-CREATE VIEW vw_employee_ordered_position AS
-SELECT 
-    e.emp_id AS "Employee ID",
-    e.emp_fullname AS "Full Name",
-    e.emp_sex AS "Gender",
-    e.emp_dob AS "Date of Birth",
-    e.emp_phone_num AS "Phone Number",
-    e.emp_email AS "Email",
-    e.emp_address AS "Address",
-    CONCAT(FORMAT(e.emp_salary, 0), ' VND') AS "Salary",
-    b.branch_name AS "Branch",
-    p.emp_position_name AS "Position",
-    e.emp_join_date AS "Join Date"
-FROM 
-    EMPLOYEES e
-JOIN 
-    BRANCHES b ON e.branch_id = b.branch_id
-JOIN 
-    EMPLOYEE_POSITIONS p ON e.emp_position_id = p.emp_position_id
-ORDER BY 
-    FIELD(b.branch_name, 'HN', 'HCM', 'ĐN', 'HP', 'QN'),  -- Sắp xếp theo chi nhánh
-    FIELD(p.emp_position_name, 'CEO', 'Manager', 'Auditor', 'Teller'),  -- Sắp xếp theo cấp bậc (bỏ Director)
-    RIGHT(e.emp_id, 6);  -- Sắp xếp theo 4 số cuối của ID nhân viên
 
-
-CREATE VIEW vw_employees_ordered_branch AS
+CREATE OR REPLACE VIEW v_employee_summary AS
 SELECT 
-    e.emp_id AS "Employee ID",
-    e.emp_fullname AS "Full Name",
-    e.emp_sex AS "Gender",
-    e.emp_dob AS "Date of Birth",
-    e.emp_phone_num AS "Phone Number",
-    e.emp_email AS "Email",
-    e.emp_address AS "Address",
-    CONCAT(FORMAT(e.emp_salary, 0), ' VND') AS "Salary",
-    b.branch_name AS "Branch",
-    p.emp_position_name AS "Position",
-    e.emp_join_date AS "Join Date"
-FROM 
-    EMPLOYEES e
-INNER JOIN 
-    BRANCHES b ON e.branch_id = b.branch_id
-INNER JOIN 
-    EMPLOYEE_POSITIONS p ON e.emp_position_id = p.emp_position_id
-ORDER BY 
-    CASE 
-        WHEN e.branch_id = 'HN' THEN 1
-        WHEN e.branch_id = 'HCM' THEN 2
-        WHEN e.branch_id = 'ĐN' THEN 3
-        WHEN e.branch_id = 'HP' THEN 4
-        WHEN e.branch_id = 'QN' THEN 5
-        ELSE 6
-    END,
-    CASE 
-        WHEN e.emp_position_id = 'C' THEN 1
-        WHEN e.emp_position_id = 'M' THEN 2
-        WHEN e.emp_position_id = 'T' THEN 3
-        WHEN e.emp_position_id = 'A' THEN 4
-        ELSE 5
-    END,
-    RIGHT(e.emp_id,6);
+    e.emp_id,
+    e.emp_fullname,
+    e.emp_phone_num,
+    e.emp_email,
+    e.branch_id,
+    b.branch_name,
+    ep.emp_position_name
+FROM EMPLOYEES e
+LEFT JOIN BRANCHES b ON e.branch_id = b.branch_id
+LEFT JOIN EMPLOYEE_POSITIONS ep ON e.emp_position_id = ep.emp_position_id;
