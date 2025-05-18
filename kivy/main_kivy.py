@@ -1,7 +1,6 @@
 from kivy.app import App
 from kivy.uix.label import Label
 from kivy.uix.button import Button
-from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import StringProperty, ObjectProperty
 from kivy.uix.gridlayout import GridLayout
@@ -24,7 +23,6 @@ from kivymd.uix.navigationdrawer import MDNavigationDrawer, MDNavigationDrawerMe
 
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDFlatButton
-from kivymd.uix.screen import MDScreen
 from kivy.lang import Builder
 from kivy.metrics import dp
 from kivymd.uix.datatables import MDDataTable
