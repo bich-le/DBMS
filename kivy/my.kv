@@ -7,13 +7,29 @@
         size_hint: 0.8, None
         height: self.minimum_height
 
-        MDLabel:
-            text: "DTNB BANK"
-            halign: "center"
-            theme_text_color: "Custom"
-            text_color: app.theme_cls.primary_color
-            font_style: "H5"
-            bold: True
+        MDBoxLayout:
+            orientation: "horizontal"
+            spacing: "8dp"
+            size_hint_y: None
+            height: dp(60)
+
+            Widget:
+                size_hint_x: 0.5  # Điều chỉnh giá trị này để dịch sang phải
+
+            Image:
+                source: "logo.jpg"
+                size_hint: None, None
+                size: dp(48), dp(48)
+                allow_stretch: True
+
+            MDLabel:
+                text: "DTNB BANK"
+                theme_text_color: "Custom"
+                text_color: app.theme_cls.primary_color
+                font_style: "H5"
+                bold: True
+                size_hint_y: None
+                height: dp(48)
 
         MDTextField:
             id: username
