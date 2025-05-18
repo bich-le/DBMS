@@ -58,7 +58,7 @@ class TellerScreen(MDScreen):
             self.db_connection = mysql.connector.connect(
                 host="localhost",
                 user="root",
-                password="Bichthebest3805",
+                password="Dance!11230592",
                 database="main"
             )
             self.cursor = self.db_connection.cursor(dictionary=True)
