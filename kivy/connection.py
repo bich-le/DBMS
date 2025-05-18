@@ -8,8 +8,8 @@ def create_connection():
         connection = mysql.connector.connect(
             host= "localhost",
             database="main",
-            user= "dong",
-            password="44444444"
+            user= "root",
+            password="Bichthebest3805"
         )
         if connection.is_connected():
             return connection

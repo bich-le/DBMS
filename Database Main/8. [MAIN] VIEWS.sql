@@ -55,33 +55,34 @@ CREATE OR REPLACE VIEW fixed_deposit_accounts_view AS
       maturity_date AS 'Maturity Date'
     FROM FIXED_DEPOSIT_ACCOUNTS;
 ########################################
-          -- EMPLOYEES--
+          -- ViewCustomer--
 ########################################
+--Displays general customer information along with their account summary.
+CREATE OR REPLACE VIEW v_customer_summary AS
+SELECT 
+    c.cus_id,
+    CONCAT(c.cus_first_name, ' ', c.cus_last_name) AS customer_name,
+    c.cus_phone_num,
+    c.cus_email,
+    b.branch_name,
+    COUNT(ca.cus_account_id) AS account_count,
+    GROUP_CONCAT(cat.cus_account_type_name SEPARATOR ', ') AS account_types
+FROM CUSTOMERS c
+LEFT JOIN BRANCHES b ON c.branch_id = b.branch_id
+LEFT JOIN CUSTOMER_ACCOUNTS ca ON c.cus_id = ca.cus_id
+LEFT JOIN CUSTOMER_ACCOUNT_TYPES cat ON ca.cus_account_type_id = cat.cus_account_type_id
+GROUP BY c.cus_id;
 
+########################################
+          -- ViewEmployees--
+########################################
+--Provides basic information for all employees, including their branch and position.
 CREATE OR REPLACE VIEW v_employee_summary AS
 SELECT 
-    e.emp_id,
-    e.emp_fullname,
-    e.emp_phone_num,
-    e.emp_email,
-    e.branch_id,
+    e.*,
     b.branch_name,
     ep.emp_position_name
 FROM EMPLOYEES e
 LEFT JOIN BRANCHES b ON e.branch_id = b.branch_id
 LEFT JOIN EMPLOYEE_POSITIONS ep ON e.emp_position_id = ep.emp_position_id;
-
-DELIMITER $$
-CREATE PROCEDURE GetEmployeeDetailsById(IN p_emp_id VARCHAR(20))
-BEGIN
-    SELECT 
-        e.*, 
-        b.branch_name,
-        ep.emp_position_name
-    FROM EMPLOYEES e
-    LEFT JOIN BRANCHES b ON e.branch_id = b.branch_id
-    LEFT JOIN EMPLOYEE_POSITIONS ep ON e.emp_position_id = ep.emp_position_id
-    Where e.emp_id = p_emp_id;
-END $$
-DELIMITER ;
 
