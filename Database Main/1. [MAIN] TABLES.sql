@@ -253,62 +253,7 @@ CREATE TABLE DEVICES (
 );
 
 							-- SYSTEM MANAGEMENT --------------------------------------------
-    CREATE TABLE SYSTEM_ACTIVITY_CATEGORIES (
-    activity_category_id INT AUTO_INCREMENT PRIMARY KEY,      
-    activity_category_name VARCHAR(30) unique,
-    description TEXT                              
-);
-CREATE TABLE SYSTEM_ACTIVITIES_HISTORY (
-    activity_id INT AUTO_INCREMENT PRIMARY KEY,
-    activity_category_id INT NOT NULL,
-    activity_time DATETIME NOT NULL,
-    emp_id VARCHAR(11) ,
-    device_id INT ,
-    objective_id VARCHAR(20),
-    old_value VARCHAR(15),
-    new_value VARCHAR(15),
-		CHECK (new_value != old_value),
-    description TEXT,
-    status ENUM('Successful', 'Failed') NOT NULL,
-    
-	FOREIGN KEY (activity_category_id) REFERENCES SYSTEM_ACTIVITY_CATEGORIES(activity_category_id) ON DELETE CASCADE,
-	FOREIGN KEY (emp_id) REFERENCES EMPLOYEES(emp_id) ON DELETE SET NULL,
-	FOREIGN KEY (device_id) REFERENCES DEVICES(device_id) ON DELETE SET NULL
-);
-CREATE TABLE INTERNAL_LOGIN_HISTORY (
-    emp_id VARCHAR(11),
-    login_time DATETIME NOT NULL,
-    logout_time DATETIME,
-    ip_address VARCHAR(45),
-    device_id INT,
-    PRIMARY KEY (emp_id, device_id, login_time),
-    status ENUM('Successful', 'Failed') NOT NULL,
-    failure_reason TEXT,
-    
-	FOREIGN KEY (emp_id) REFERENCES EMPLOYEES(emp_id) ON DELETE CASCADE,
-	FOREIGN KEY (device_id) REFERENCES DEVICES(device_id) ON DELETE CASCADE
-);
-CREATE TABLE EMPLOYEE_ACCOUNTS_HISTORY (
-    history_id INT AUTO_INCREMENT PRIMARY KEY,
-    emp_id VARCHAR(11) NOT NULL,
-    old_status ENUM('Active', 'Inactive', 'Temporarily Suspended', 'Permanently Suspended'),
-    new_status ENUM('Active', 'Inactive', 'Temporarily Suspended', 'Permanently Suspended') NOT NULL,
-    change_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    changed_by VARCHAR(11),
-    reason TEXT,
-    
-    FOREIGN KEY (emp_id) REFERENCES EMPLOYEE_ACCOUNTS(emp_id) ON DELETE CASCADE
-);
-CREATE TABLE CUS_ACCOUNT_CHANGE_HISTORY (
-    cus_account_id VARCHAR(17),
-    change_time DATETIME NOT NULL,
-    field_change VARCHAR(100) NOT NULL,
-    new_value TEXT,
-    old_value TEXT,
-    
-	PRIMARY KEY ( cus_account_id, change_time),
-	FOREIGN KEY (cus_account_id) REFERENCES CUSTOMER_ACCOUNTS(cus_account_id) ON DELETE CASCADE
-);
+
 
 CREATE TABLE FRAUD_PATTERNS (
     fraud_pattern_id INT auto_increment PRIMARY KEY,

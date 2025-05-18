@@ -37,6 +37,7 @@ import mysql.connector
 import hashlib
 from connection import create_connection
 #Builder.load_file("director_screen.kv")
+# test merge
 
 class DrawerItem(MDNavigationDrawerItem):
     icon = StringProperty()
@@ -51,10 +52,15 @@ class MainScreen(MDScreen):
         app = MDApp.get_running_app()
         result = app.verify_login_and_get_position(username, password)
         if result:
+            self.current_branch_id = result['branch_id']
+            app.current_branch_id = result['branch_id']
+
+        if result:
             status = result['status']
             position = result['emp_position_id']
 
             if status == 'Active':
+                app.current_role = position.lower()
                 app.root.transition.direction = "left"
                 app.root.current = position.lower()
             elif status == 'Inactive':
@@ -84,11 +90,11 @@ class MainScreen(MDScreen):
         )
         self.dialog.open()
 
-class ManagerScreen(MDScreen): pass
-class AuditorScreen(MDScreen): pass
-#class DirectorScreen(MDScreen): pass
-
 class MyApp(MDApp):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.current_role = "guest"  # Mặc định ban đầu
+
     def build(self):
         self.theme_cls.primary_palette = "DeepPurple"
         Builder.load_file("director_screen.kv")
@@ -111,12 +117,12 @@ class MyApp(MDApp):
             conn = mysql.connector.connect(
                 host="localhost",
                 user="root",
-                password="Dance!11230592",
+                password="Bichthebest3805",
                 database="main"
             )
             cursor = conn.cursor(dictionary=True)
             query = """
-                SELECT e.emp_position_id, a.status
+                SELECT e.emp_position_id, a.status, e.branch_id
                 FROM EMPLOYEE_ACCOUNTS a
                 JOIN EMPLOYEES e ON a.emp_id = e.emp_id
                 WHERE a.username = %s AND a.password_hash = %s 

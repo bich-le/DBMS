@@ -38,17 +38,22 @@ class TellerScreen(MDScreen):
             self.ids.report_box.refresh()
         
         if self._first_load:
-            Clock.schedule_once(lambda dt: self.load_customers(), 0.1)
+            Clock.schedule_once(lambda dt: self.ids.customers_screen_teller.load_customers(), 0.1)
+
             self._first_load = False
         else:
-            self.load_customers()
+            self.ids.customers_screen_teller.load_customers()
             
     def on_enter(self):
+        self.ids.report_box.refresh()
         if not self._first_load:
-            self.load_customers()
+            self.ids.customers_screen_teller.load_customers()
         
     def navigate_to(self, screen_name):
         self.ids.screen_manager.current = screen_name
+
+        if screen_name == "customers":
+            self.ids.customers_screen_teller.load_customers()
         
     def on_leave(self):
         self.close_db_connection()
@@ -62,6 +67,10 @@ class TellerScreen(MDScreen):
                 database="main"
             )
             self.cursor = self.db_connection.cursor(dictionary=True)
+            
+            self.ids.customers_screen_teller.cursor = self.cursor
+            self.ids.customers_screen_teller.db_connection = self.db_connection
+        
         except Error as e:
             print("Database connection error:", e)
             self.show_error_dialog("Không thể kết nối đến cơ sở dữ liệu")
@@ -71,29 +80,7 @@ class TellerScreen(MDScreen):
             self.cursor.close()
         if self.db_connection and self.db_connection.is_connected():
             self.db_connection.close()
-    
-    def load_customers(self, search_term=""):
-        load_customers(self, search_term)
-    
-    def filter_customers(self, search_term):
-        self.load_customers(search_term)
-    
-    def show_customer_details(self, customer):
-        show_customer_details(self, customer)
-    
-    def load_customer_accounts(self, customer_id):
-        load_customer_accounts(self, customer_id)
-    
-    def show_account_details(self, account):
-        show_account_details(self, account)
-    
-    def show_error_dialog(self, message):
-        show_error_dialog(self, message)
-        
-    def show_customer_table(self):
-        show_customer_table(self)
-        
-        
+               
     def call_report_procedure(self, report_id, cursor):
         """
         Gọi stored procedure tương ứng với report_id

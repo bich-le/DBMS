@@ -57,23 +57,6 @@ VALUES
 ('M', 'Manager', 'Manages bank branch operations'),
 ('A', 'Auditor', 'Responsible for reviewing and auditing financial records'),
 ('C', 'CEO', 'Leads the entire bank, responsible for corporate strategy and executive decisions');
-INSERT INTO DEVICE_TYPES (device_type_name, is_portable, requires_approval, description)
-VALUES
-    ('Desktop', FALSE, FALSE, 'Standard device for most office-based employees (e.g., tellers, customer service, loan officers).'),
-    ('Laptop', TRUE, FALSE, 'For mobile employees, managers, auditors, or IT staff who may need to work remotely or across branches.'),
-    ('Thin Client', FALSE, FALSE, 'Used in highly secure environments (e.g., call centers or branch service counters).'),
-    ('Mobile Device', TRUE, TRUE, 'Typically for notifications, approvals (e.g., 2FA or digital signatures by senior staff).'),
-    ('Admin Console', FALSE, TRUE, 'Used by system admins or database administrators to manage internal systems.');
-INSERT INTO DEVICES (device_type_id, device_name, mac_address, ip_address, is_active, is_approved, created_at, last_checked_at)
-VALUES
-    -- Nhân viên 101 (IT Department)
-    (1, 'PC-Accounting-01', '00:1A:2B:3C:4D:5E', '192.168.1.100', TRUE, TRUE, '2023-01-15 09:00:00', '2023-12-01 14:30:00'),
-    (2, 'Laptop-IT-01', '00:1A:2B:3C:4D:5F', '192.168.1.101', TRUE, TRUE, '2023-01-16 10:00:00', '2023-12-01 14:35:00'),
-    -- Nhân viên 205 (Giao dịch viên)
-    (2, 'VM-Accounting-Backup', '00:1A:2B:3C:4D:60', '192.168.2.50', TRUE, TRUE, '2023-02-10 08:30:00', '2023-12-01 15:00:00'),
-    (4, 'Samsung Galaxy S23', '00:1A:2B:3C:4D:61', NULL, TRUE, TRUE, '2023-02-12 13:15:00', '2023-12-01 15:05:00'),
-    -- Nhân viên 307 (Quản lý chi nhánh)
-    (3, 'ThinClient-01', '00:1A:2B:3C:4D:62', '192.168.3.20', TRUE, TRUE, '2023-03-05 11:20:00', '2023-12-01 16:00:00');
 INSERT INTO FRAUD_PATTERNS (fraud_pattern_name, description)
 VALUES 
 ('Transaction Amount Spike', 'More than 5 consecutive transaction in less than 15 minutes exceeds 10 times the average amount of that account over 1-year interval.(if these transaction amounts exceed 50000000'),
@@ -241,5 +224,16 @@ INSERT INTO EMPLOYEES (emp_fullname, emp_sex, emp_dob, emp_phone_num, emp_email,
 ('Vũ Minh Giao Dịch 5', 'Male', '1992-04-20', '+84 900000044', 'teller5.qn@bank.com', '23 Lý Thường Kiệt, Quảng Ninh', 12000000, 'QN', 'T', '2021-07-18'),
 ('Nguyễn Quang Kiểm Toán 1', 'Male', '1985-07-30', '+84 900000045', 'auditor1.qn@bank.com', '67 Cái Dăm, Quảng Ninh', 18000000, 'QN', 'A', '2020-03-10'),
 ('Lê Thị Kiểm Toán 2', 'Female', '1986-05-05', '+84 900000046', 'auditor2.qn@bank.com', '123 Bãi Cháy, Quảng Ninh', 17500000, 'QN', 'A', '2020-09-15');
-
-
+######################################################
+		-- EMPLOYEE ACCOUNTS --
+######################################################  
+INSERT INTO employee_accounts (emp_id, username, password_hash, status, suspension_time, reactivation_time, created_at
+) VALUES
+('HNA180001', 'toan1', SHA2('toan1', 256), 'Active', NULL, NULL, '2018-09-10 00:00:00'),
+('HNA190001', 'toan2', SHA2('toan2', 256), 'Active', NULL, NULL, '2019-11-05 00:00:00'),
+('HNC100001', 'van',   SHA2('van', 256), 'Active', NULL, NULL, '2010-01-15 00:00:00'),
+('HNM150001', 'nhan',  SHA2('nhan', 256), 'Active', NULL, NULL, '2015-03-10 00:00:00'),
+('HNM160001', 'chau',  SHA2('chau', 256), 'Active', NULL, NULL, '2016-05-20 00:00:00'),
+('HNT180001', 'nam',   SHA2('nam', 256), 'Active', NULL, NULL, '2018-02-15 00:00:00'),
+('HNT190001', 'gdich1', SHA2('gdich1', 256), 'Active', NULL, NULL, '2018-02-15 00:00:00'),
+('HNT200001', 'gdich2', SHA2('gdich2', 256), 'Active', NULL, NULL, '2018-02-15 00:00:00');
