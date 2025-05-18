@@ -254,7 +254,7 @@ LEFT JOIN FIXED_DEPOSIT_ACCOUNTS fda ON ca.cus_account_id = fda.cus_account_id;
 DELIMITER $$
 
 CREATE PROCEDURE sp_account_summary_report (
-    IN p_branch_id VARCHAR(4),
+    IN p_branch_id VARCHAR(50),
     IN p_account_type VARCHAR(10)  -- Giá trị: 'Saving', 'Checking', 'Fixed' hoặc NULL để lấy tất cả
 )
 BEGIN

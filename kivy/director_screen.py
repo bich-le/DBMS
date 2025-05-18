@@ -13,10 +13,11 @@ from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDFlatButton
 from kivymd.app import MDApp
 from kivymd.uix.datatables import MDDataTable
+from connection import create_connection  # Thêm dòng này
 
 from customers_screen import *
 from Employees_screen import *
-from Suspicion_screen import SuspicionScreen
+from Suspicion_screen import *
 
 class DirectorScreen(MDScreen):
     def __init__(self, **kwargs):
@@ -59,28 +60,26 @@ class DirectorScreen(MDScreen):
     
     def connect_to_db(self):
         try:
-            self.db_connection = mysql.connector.connect(
-                host="localhost",
-                user="root",
-                password="Bichthebest3805",
-                database="main"
-            )
-            self.cursor = self.db_connection.cursor(dictionary=True)
-            
-            self.ids.customers_screen.cursor = self.cursor
-            self.ids.customers_screen.db_connection = self.db_connection
-            self.ids.employees_screen.cursor = self.cursor
-            self.ids.employees_screen.db_connection = self.db_connection
-            self.ids.suspicion_screen.cursor = self.cursor
-            self.ids.suspicion_screen.db_connection = self.db_connection
+            self.db_connection = create_connection()
+            if self.db_connection:
+                self.cursor = self.db_connection.cursor(dictionary=True)
+                self.ids.customers_screen.cursor = self.cursor
+                self.ids.customers_screen.db_connection = self.db_connection
+                self.ids.employees_screen.cursor = self.cursor
+                self.ids.employees_screen.db_connection = self.db_connection
+                self.ids.suspicion_screen.cursor = self.cursor
+                self.ids.suspicion_screen.db_connection = self.db_connection
+                # Nếu cần cho SuspicionsBox:
+                if hasattr(self.ids.suspicion_screen, "ids") and "suspicions_box" in self.ids.suspicion_screen.ids:
+                    self.ids.suspicion_screen.ids.suspicions_box.cursor = self.cursor
+                    self.ids.suspicion_screen.ids.suspicions_box.db_connection = self.db_connection
         except Error as e:
             print("Database connection error:", e)
             self.show_error_dialog("Không thể kết nối đến cơ sở dữ liệu")
-    
+        
     def close_db_connection(self):
         if self.cursor:
             self.cursor.close()
         if self.db_connection and self.db_connection.is_connected():
             self.db_connection.close()
-            
-    
+

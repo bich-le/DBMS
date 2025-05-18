@@ -420,182 +420,187 @@
                             text: ""
 
 
+<SuspicionsBox@MDBoxLayout>:
+    orientation: "vertical"
+    spacing: "10dp"
+    padding: "10dp"
+
+    MDTopAppBar:
+        title: "[color=#FFFFFF]Suspicious Activity Monitoring[/color]"
+        left_action_items: [["menu", lambda x: app.root.get_screen("c").ids.nav_drawer.set_state("open")]]
+
+    # Stats Cards Row
+    MDGridLayout:
+        cols: 4
+        spacing: "10dp"
+        size_hint_y: None
+        height: "100dp"
+
+        # Total Card
+        MDCard:
+            md_bg_color: "#EDE7F6"
+            radius: [20,]
+            padding: "10dp"
+            MDBoxLayout:
+                orientation: "vertical"
+                spacing: "5dp"
+                MDLabel:
+                    text: "Total"
+                    font_style: "H6"
+                    theme_text_color: "Custom"
+                    text_color: "#D32F2F"
+                MDLabel:
+                    id: total_count
+                    text: "0"
+                    font_style: "H4"
+                    bold: True
+                    theme_text_color: "Custom"
+                    text_color: "#7E57C2"
+                MDLabel:
+                    id: total_today
+                    text: "+0 today"
+                    font_style: "Caption"
+                    theme_text_color: "Custom"
+                    text_color: "#7E57C2"
+
+        # High Risk Card
+        MDCard:
+            md_bg_color: "#EDE7F6"
+            radius: [20,]
+            padding: "10dp"
+            MDBoxLayout:
+                orientation: "vertical"
+                spacing: "5dp"
+                MDLabel:
+                    text: "High Risk"
+                    font_style: "H6"
+                    theme_text_color: "Custom"
+                    text_color: "#FF7043"
+                MDLabel:
+                    id: high_risk_count
+                    text: "0"
+                    font_style: "H4"
+                    bold: True
+                    theme_text_color: "Custom"
+                    text_color: "#7E57C2"
+                MDLabel:
+                    id: high_today
+                    text: "+0 today"
+                    font_style: "Caption"
+                    theme_text_color: "Custom"
+                    text_color: "#7E57C2"
+
+        # Medium Risk Card
+        MDCard:
+            md_bg_color: "#EDE7F6"
+            radius: [20,]
+            padding: "10dp"
+            MDBoxLayout:
+                orientation: "vertical"
+                spacing: "5dp"
+                MDLabel:
+                    text: "Medium Risk"
+                    font_style: "H6"
+                    theme_text_color: "Custom"
+                    text_color: "#FFA000"
+                MDLabel:
+                    id: medium_risk_count
+                    text: "0"
+                    font_style: "H4"
+                    bold: True
+                    theme_text_color: "Custom"
+                    text_color: "#7E57C2"
+                MDLabel:
+                    id: medium_today
+                    text: "+0 today"
+                    font_style: "Caption"
+                    theme_text_color: "Custom"
+                    text_color: "#7E57C2"
+
+        # Low Risk Card
+        MDCard:
+            md_bg_color: "#EDE7F6"
+            radius: [20,]
+            padding: "10dp"
+            MDBoxLayout:
+                orientation: "vertical"
+                spacing: "10dp"
+                MDLabel:
+                    text: "Low Risk"
+                    font_style: "H6"
+                    theme_text_color: "Custom"
+                    text_color: "#FFB300"
+                MDLabel:
+                    id: low_risk_count
+                    text: "0"
+                    font_style: "H4"
+                    bold: True
+                    theme_text_color: "Custom"
+                    text_color: "#7E57C2"
+                MDLabel:
+                    id: low_today
+                    text: "+0 today"
+                    font_style: "Caption"
+                    theme_text_color: "Custom"
+                    text_color: "#7E57C2"
+
+    # Search and Filter Bar
+    MDBoxLayout:
+        size_hint_y: None
+        height: "60dp"
+        spacing: "10dp"
+        padding: "0dp", "10dp", "0dp", "0dp"
+
+        MDTextField:
+            id: search_field_suspicion
+            hint_text: "Search transactions..."
+            mode: "rectangle"
+            size_hint_x: 0.3
+            icon_right: "magnify"
+            icon_right_color: "#7E57C2"
+            line_color_normal: "#B39DDB"
+            line_color_focus: "#512DA8"
+            on_focus:
+                if self.focus: self.size_hint_x = 0.8
+                else: self.size_hint_x = 0.3
+            on_text: root.search_suspicious_cases(self.text)
+
+        MDRaisedButton:
+            icon_right: "filter-outline"
+            text: "Filter"
+            md_bg_color: "#5E35B1"
+            text_color: "#FFFFFF"
+            icon_right_color: "#EDE7F6"
+            size_hint_x: 0.15
+            on_release: app.root.get_screen('suspicions').show_filter_dialog()
+
+    # Main Data Table Area
+    MDCard:
+        size_hint: 1, 1
+        padding: "0dp"
+        elevation: 1
+        radius: [15,]
+        md_bg_color: "#FFFFFF"
+
+        ScrollView:
+            bar_width: 8
+            bar_color: "#7E57C2"
+            MDBoxLayout:
+                id: table_container_suspicion
+                orientation: "vertical"
+                size_hint_y: 1
+
+                MDLabel:
+                    id: placeholder_suspicion
+                    text: "Loading suspicious activities..."
+                    halign: "center"
+                    font_style: "Caption"
+                    font_size: "12sp"
+                    size_hint_y: None
+                    height: "40dp"
+                    theme_text_color: "Secondary"
+
 <SuspicionScreen>:
     name: "suspicion"
-    MDBoxLayout:
-        elevation: 0
-        orientation: "vertical"
-        spacing: "10dp"
-        padding: "10dp"
-
-        MDTopAppBar:
-            title: "Suspicious Activities Monitoring"
-            left_action_items: [["menu", lambda x: app.root.get_screen("c").ids.nav_drawer.set_state("open")]]
-
-        # Stats Cards Row
-        MDGridLayout:
-            cols: 4
-            spacing: "10dp"
-            size_hint_y: None
-            height: "100dp"
-
-            # Total Card
-            MDCard:
-                md_bg_color: "#EDE7F6"
-                radius: [20,]
-                padding: "10dp"
-                MDBoxLayout:
-                    orientation: "vertical"
-                    spacing: "5dp"
-                    MDLabel:
-                        text: "Total"
-                        font_style: "H6"
-                        theme_text_color: "Custom"
-                        text_color: "#D32F2F"
-                    MDLabel:
-                        id: total_count
-                        text: "0"
-                        font_style: "H4"
-                        bold: True
-                        theme_text_color: "Custom"
-                        text_color: "#7E57C2"
-                    MDLabel:
-                        text: "+0 today"
-                        font_style: "Caption"
-                        theme_text_color: "Custom"
-                        text_color: "#7E57C2"
-
-            # High Risk Card
-            MDCard:
-                md_bg_color: "#EDE7F6"
-                radius: [20,]
-                padding: "10dp"
-                MDBoxLayout:
-                    orientation: "vertical"
-                    spacing: "5dp"
-                    MDLabel:
-                        text: "High Risk"
-                        font_style: "H6"
-                        theme_text_color: "Custom"
-                        text_color: "#FF7043"
-                    MDLabel:
-                        id: high_risk_count
-                        text: "0"
-                        font_style: "H4"
-                        bold: True
-                        theme_text_color: "Custom"
-                        text_color: "#7E57C2"
-                    MDLabel:
-                        text: "+0 today"
-                        font_style: "Caption"
-                        theme_text_color: "Custom"
-                        text_color: "#7E57C2"
-
-            # Medium Risk Card
-            MDCard:
-                md_bg_color: "#EDE7F6"
-                radius: [20,]
-                padding: "10dp"
-                MDBoxLayout:
-                    orientation: "vertical"
-                    spacing: "5dp"
-                    MDLabel:
-                        text: "Medium Risk"
-                        font_style: "H6"
-                        theme_text_color: "Custom"
-                        text_color: "#FFA000"
-                    MDLabel:
-                        id: medium_risk_count
-                        text: "0"
-                        font_style: "H4"
-                        bold: True
-                        theme_text_color: "Custom"
-                        text_color: "#7E57C2"
-                    MDLabel:
-                        text: "+0 today"
-                        font_style: "Caption"
-                        theme_text_color: "Custom"
-                        text_color: "#7E57C2"
-
-            # Low Risk Card
-            MDCard:
-                md_bg_color: "#EDE7F6"
-                radius: [20,]
-                padding: "10dp"
-                MDBoxLayout:
-                    orientation: "vertical"
-                    spacing: "10dp"
-                    MDLabel:
-                        text: "Low Risk"
-                        font_style: "H6"
-                        theme_text_color: "Custom"
-                        text_color: "#FFB300"
-                    MDLabel:
-                        id: low_risk_count
-                        text: "0"
-                        font_style: "H4"
-                        bold: True
-                        theme_text_color: "Custom"
-                        text_color: "#7E57C2"
-                    MDLabel:
-                        text: "+0 today"
-                        font_style: "Caption"
-                        theme_text_color: "Custom"
-                        text_color: "#7E57C2"
-
-        # Search and Filter Bar
-        MDBoxLayout:
-            size_hint_y: None
-            height: "60dp"
-            spacing: "10dp"
-            padding: "0dp", "10dp", "0dp", "0dp"
-
-            MDTextField:
-                id: search_field_suspicion
-                hint_text: "Search transactions..."
-                mode: "rectangle"
-                size_hint_x: 0.3
-                icon_right: "magnify"
-                icon_right_color: "#7E57C2"
-                line_color_normal: "#B39DDB"
-                line_color_focus: "#512DA8"
-                on_focus:
-                    if self.focus: self.size_hint_x = 0.8
-                    else: self.size_hint_x = 0.3
-                on_text: root.search_suspicious_cases(self.text)
-
-            MDRaisedButton:
-                icon_right: "filter-outline"
-                text: "Filter"
-                md_bg_color: "#5E35B1"
-                text_color: "#FFFFFF"
-                icon_right_color: "#EDE7F6"
-                size_hint_x: 0.15
-                on_release: root.show_filter_dialog()
-
-        # Main Data Table Area
-        MDCard:
-            size_hint: 1, 1
-            padding: "0dp"
-            elevation: 1
-            radius: [15,]
-            md_bg_color: "#FFFFFF"
-
-            ScrollView:
-                bar_width: 8
-                bar_color: "#7E57C2"
-                MDBoxLayout:
-                    id: table_container_suspicion
-                    orientation: "vertical"
-                    size_hint_y: None
-                    height: self.minimum_height
-                    padding: "10dp"
-
-                    MDLabel:
-                        id: placeholder_suspicion
-                        text: "Loading suspicious activities..."
-                        halign: "center"
-                        font_style: "H6"
-                        size_hint_y: None
-                        height: "300dp"
-                        theme_text_color: "Secondary"
+    SuspicionsBox:
+        id: suspicions_box

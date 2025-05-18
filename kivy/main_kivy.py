@@ -1,7 +1,6 @@
 from kivy.app import App
 from kivy.uix.label import Label
 from kivy.uix.button import Button
-from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import StringProperty, ObjectProperty
 from kivy.uix.gridlayout import GridLayout
@@ -24,7 +23,6 @@ from kivymd.uix.navigationdrawer import MDNavigationDrawer, MDNavigationDrawerMe
 
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDFlatButton
-from kivymd.uix.screen import MDScreen
 from kivy.lang import Builder
 from kivy.metrics import dp
 from kivymd.uix.datatables import MDDataTable
@@ -36,6 +34,7 @@ from auditor_screen import AuditorScreen
 import mysql.connector
 import hashlib
 from connection import create_connection
+
 #Builder.load_file("director_screen.kv")
 # test merge
 
@@ -114,12 +113,10 @@ class MyApp(MDApp):
     
     def verify_login_and_get_position(self, username, password):
         try:
-            conn = mysql.connector.connect(
-                host="localhost",
-                user="root",
-                password="Bichthebest3805",
-                database="main"
-            )
+            conn = create_connection()
+            if not conn:
+                print("Không thể kết nối CSDL")
+                return None
             cursor = conn.cursor(dictionary=True)
             query = """
                 SELECT e.emp_position_id, a.status, e.branch_id

@@ -1,0 +1,86 @@
+#:kivy 2.3.1
+#:import dp kivy.metrics.dp
+#:import MDCard kivymd.uix.card.MDCard
+#:import RoundedRectangularElevationBehavior kivymd.uix.behaviors.elevation.RoundedRectangularElevationBehavior
+
+<InterestRateCard@MDCard+RoundedRectangularElevationBehavior>:
+    orientation: 'vertical'
+    size_hint_y: None
+    height: dp(140)
+    padding: dp(10)
+    spacing: dp(5)
+    md_bg_color: root.card_color
+    radius: [15,]
+    elevation: 2
+
+    BoxLayout:
+        size_hint_y: None
+        height: dp(30)
+        spacing: dp(10)
+        MDLabel:
+            text: 'Rate ID: ' + str(root.rate_id)
+            theme_text_color: "Custom"
+            text_color: 1, 1, 1, 1
+            bold: True
+        MDLabel:
+            text: 'Type: ' + root.account_type
+            theme_text_color: "Custom"
+            text_color: 1, 1, 1, 1
+            bold: True
+
+    BoxLayout:
+        size_hint_y: None
+        height: dp(40)
+        MDLabel:
+            text: str(root.rate_value) + '%'
+            theme_text_color: "Custom"
+            text_color: 1, 1, 1, 1
+            font_size: '24sp'
+            bold: True
+            halign: 'center'
+    
+    BoxLayout:
+        size_hint_y: None
+        height: dp(30)
+        spacing: dp(10)
+        MDLabel:
+            text: 'Min: ' + (str(root.min_balance) if root.min_balance else 'None')
+            theme_text_color: "Custom"
+            text_color: 1, 1, 1, 1
+        MDLabel:
+            text: 'Max: ' + (str(root.max_balance) if root.max_balance else 'None')
+            theme_text_color: "Custom"
+            text_color: 1, 1, 1, 1
+    
+    BoxLayout:
+        size_hint_y: None
+        height: dp(30)
+        MDLabel:
+            text: 'Status: ' + root.status
+            theme_text_color: "Custom"
+            text_color: 1, 1, 1, 1
+            bold: True if root.status == 'Active' else False
+        MDLabel:
+            text: 'Term: ' + (str(root.term) + 'm' if root.term else 'None')
+            theme_text_color: "Custom"
+            text_color: 1, 1, 1, 1
+
+<InterestRateScreen@MDBoxLayout>:
+    MDBoxLayout:
+        orientation: 'vertical'
+        spacing: dp(10)
+        
+        MDTopAppBar:
+            title: "Interest Rate"
+            left_action_items: [["menu", lambda x: root.nav_drawer.set_state("open")]]
+            right_action_items: [["magnify", lambda x: root.show_filters()], ["plus", lambda x: root.show_add_rate_form()]]
+            elevation: 2
+        
+        ScrollView:
+            MDGridLayout:
+                id: rates_container
+                cols: 1
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(10)
+                padding: dp(10)
