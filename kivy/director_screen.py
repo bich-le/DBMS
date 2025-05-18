@@ -16,7 +16,7 @@ from kivymd.uix.datatables import MDDataTable
 
 from customers_screen import *
 from Employees_screen import *
-from Suspicion_screen import SuspicionScreen
+from Suspicion_screen import *
 
 class DirectorScreen(MDScreen):
     def __init__(self, **kwargs):
@@ -73,10 +73,14 @@ class DirectorScreen(MDScreen):
             self.ids.employees_screen.db_connection = self.db_connection
             self.ids.suspicion_screen.cursor = self.cursor
             self.ids.suspicion_screen.db_connection = self.db_connection
+            # Nếu cần cho SuspicionsBox:
+            if hasattr(self.ids.suspicion_screen, "ids") and "suspicions_box" in self.ids.suspicion_screen.ids:
+                self.ids.suspicion_screen.ids.suspicions_box.cursor = self.cursor
+                self.ids.suspicion_screen.ids.suspicions_box.db_connection = self.db_connection
         except Error as e:
             print("Database connection error:", e)
             self.show_error_dialog("Không thể kết nối đến cơ sở dữ liệu")
-    
+        
     def close_db_connection(self):
         if self.cursor:
             self.cursor.close()
