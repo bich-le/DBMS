@@ -179,7 +179,7 @@ class ReportInputDialog:
             conn = mysql.connector.connect(
                 host="localhost",
                 user="root",
-                password="Nhan220405",
+                password="Bichthebest3805",
                 database="main",
                 connect_timeout=3
             )

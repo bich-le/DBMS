@@ -1,29 +1,18 @@
 <AuditorScreen>:
-    on_enter: self.ids.screen_manager.current = "interest_rate"
+    on_enter: self.ids.screen_manager.current = "branch_transactions"
     MDNavigationLayout:
         MDScreenManager:
             id: screen_manager
-
-            MDScreen:
-                name: "interest_rate"
-                MDBoxLayout:
-                    orientation: "vertical"
-                    MDTopAppBar:
-                        title: "Interest Rate"
-                        left_action_items: [["menu", lambda x: nav_drawer.set_state("open")]]
-                    MDLabel:
-                        text: "Interest rate content"
-                        halign: "center"
 
             MDScreen:
                 name: "branch_transactions"
                 MDBoxLayout:
                     orientation: "vertical"
                     MDTopAppBar:
-                        title: "Branch Transactions"
+                        title: "Transactions"
                         left_action_items: [["menu", lambda x: nav_drawer.set_state("open")]]
                     MDLabel:
-                        text: "Branch transactions content"
+                        text: "Transactions content"
                         halign: "center"
 
             MDScreen:
@@ -47,17 +36,6 @@
                         text: "Suspicion content"
                         halign: "center"
 
-            MDScreen:
-                name: "system_history"
-                MDBoxLayout:
-                    orientation: "vertical"
-                    MDTopAppBar:
-                        title: "System History"
-                        left_action_items: [["menu", lambda x: nav_drawer.set_state("open")]]
-                    MDLabel:
-                        text: "System history content"
-                        halign: "center"
-
         MDNavigationDrawer:
             id: nav_drawer
             radius: 0, dp(16), dp(16), 0
@@ -72,15 +50,8 @@
                 MDNavigationDrawerDivider:
 
                 DrawerItem:
-                    icon: "percent"
-                    text: "Interest Rate"
-                    on_release:
-                        screen_manager.current = "interest_rate"
-                        nav_drawer.set_state("close")
-
-                DrawerItem:
                     icon: "history"
-                    text: "Branch Transactions"
+                    text: "Transactions"
                     on_release:
                         screen_manager.current = "branch_transactions"
                         nav_drawer.set_state("close")
@@ -97,13 +68,6 @@
                     text: "Suspicion"
                     on_release:
                         screen_manager.current = "suspicion"
-                        nav_drawer.set_state("close")
-
-                DrawerItem:
-                    icon: "cog"
-                    text: "System History"
-                    on_release:
-                        screen_manager.current = "system_history"
                         nav_drawer.set_state("close")
 
                 MDNavigationDrawerDivider:

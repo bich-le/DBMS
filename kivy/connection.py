@@ -9,7 +9,7 @@ def create_connection():
             host= "localhost",
             database="main",
             user= "root",
-            password="Nhan220405"
+            password="Bichthebest3805"
         )
         if connection.is_connected():
             return connection

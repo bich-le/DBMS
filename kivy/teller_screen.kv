@@ -25,17 +25,6 @@
                         halign: "center"
 
             MDScreen:
-                name: "branch_history"
-                MDBoxLayout:
-                    orientation: "vertical"
-                    MDTopAppBar:
-                        title: "Branch History"
-                        left_action_items: [["menu", lambda x: app.root.get_screen("t").ids.nav_drawer.set_state("open")]]
-                    MDLabel:
-                        text: "Branch history content"
-                        halign: "center"
-
-            MDScreen:
                 name: "report"
                 MDBoxLayout:
                     orientation: "vertical"
@@ -54,17 +43,6 @@
                         left_action_items: [["menu", lambda x: app.root.get_screen("t").ids.nav_drawer.set_state("open")]]
                     MDLabel:
                         text: "Suspicion content"
-                        halign: "center"
-
-            MDScreen:
-                name: "system_history"
-                MDBoxLayout:
-                    orientation: "vertical"
-                    MDTopAppBar:
-                        title: "System History"
-                        left_action_items: [["menu", lambda x: app.root.get_screen("t").ids.nav_drawer.set_state("open")]]
-                    MDLabel:
-                        text: "System history content"
                         halign: "center"
 
         MDNavigationDrawer:
@@ -96,14 +74,6 @@
                         Clock.schedule_once(lambda dt: setattr(screen_manager, "current", "transactions"), 0.1)
 
                 DrawerItem:
-                    icon: "domain"
-                    text: "Branch History"
-                    on_release:
-                        nav_drawer.set_state("close")
-                        Clock.schedule_once(lambda dt: setattr(screen_manager, "current", "branch_history"), 0.1)
-
-
-                DrawerItem:
                     icon: "file-chart"
                     text: "Reports"
                     on_release:
@@ -117,15 +87,6 @@
                     on_release:
                         nav_drawer.set_state("close")
                         Clock.schedule_once(lambda dt: setattr(screen_manager, "current", "suspicion"), 0.1)
-
-
-                DrawerItem:
-                    icon: "cog"
-                    text: "System History"
-                    on_release:
-                        nav_drawer.set_state("close")
-                        Clock.schedule_once(lambda dt: setattr(screen_manager, "current", "system_history"), 0.1)
-
 
                 MDNavigationDrawerDivider:
                     height: "1dp"
