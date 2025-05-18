@@ -70,3 +70,18 @@ SELECT
 FROM EMPLOYEES e
 LEFT JOIN BRANCHES b ON e.branch_id = b.branch_id
 LEFT JOIN EMPLOYEE_POSITIONS ep ON e.emp_position_id = ep.emp_position_id;
+
+DELIMITER $$
+CREATE PROCEDURE GetEmployeeDetailsById(IN p_emp_id VARCHAR(20))
+BEGIN
+    SELECT 
+        e.*, 
+        b.branch_name,
+        ep.emp_position_name
+    FROM EMPLOYEES e
+    LEFT JOIN BRANCHES b ON e.branch_id = b.branch_id
+    LEFT JOIN EMPLOYEE_POSITIONS ep ON e.emp_position_id = ep.emp_position_id
+    Where e.emp_id = p_emp_id;
+END $$
+DELIMITER ;
+
