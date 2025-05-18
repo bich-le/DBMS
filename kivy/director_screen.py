@@ -12,7 +12,7 @@ from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.toast import toast
 from kivymd.uix.textfield import MDTextField
 from datetime import datetime
-
+from kivymd.uix.button import MDIconButton
 
 class DirectorScreen(MDScreen):
     def __init__(self, **kwargs):
@@ -65,7 +65,7 @@ class DirectorScreen(MDScreen):
                     trans_status,
                     trans_error_code
                 FROM transactions
-                ORDER BY trans_time DESC
+                ORDER BY transactions.trans_time DESC
                 LIMIT 100
             """)
             self.all_transactions_data = cursor.fetchall()
@@ -83,15 +83,15 @@ class DirectorScreen(MDScreen):
         if not container:
             return
 
-        if not self._trans_placeholder:
-            self._trans_placeholder = self.ids.get('trans_placeholder')
+        # Không dùng self._trans_placeholder nữa
+        trans_placeholder = self.ids.get('trans_placeholder')
 
         container.clear_widgets()
 
         if not data:
-            if self._trans_placeholder:
-                self._trans_placeholder.text = "Không có dữ liệu giao dịch"
-                container.add_widget(self._trans_placeholder)
+            if trans_placeholder:
+                trans_placeholder.text = "Không có dữ liệu giao dịch"
+                container.add_widget(trans_placeholder)
             return
 
         self.data_trans_table = MDDataTable(
@@ -114,7 +114,7 @@ class DirectorScreen(MDScreen):
                 row['related_cus_account_id'] or "",
                 f"{row['trans_amount']:,.0f}",
                 row['trans_time'],
-                row['trans_status'],
+                '[color=#D50000]FAILED[/color]' if row['trans_status'].lower() == 'failed' else '[color=#00C853]SUCCESS[/color]',
                 row['trans_error_code'] or ""
             ) for row in data],
             use_pagination=True,
@@ -144,7 +144,6 @@ class DirectorScreen(MDScreen):
         container.add_widget(self.ids.trans_placeholder)
 
     def search_transaction(self):
-        # screen = self.ids.screen_manager.get_screen('transactions')
         query = self.ids.trans_search_field.text.strip()
 
         if not query:
@@ -247,48 +246,58 @@ class DirectorScreen(MDScreen):
         self.add_transaction_dialog.dismiss()
 
     def add_new_transaction_to_db(self, instance):
-            trans_type_id = self.trans_type_id_field.text
-            cus_account_id = self.cus_account_id_field.text
-            related_cus_account_id = self.related_cus_account_id_field.text or None
-            trans_amount = self.trans_amount_field.text
-            direction = self.direction_field.text
-            trans_status = self.trans_status_field.text
-            trans_error_code = self.trans_error_code_field.text or None
-            trans_time = self.trans_time_field.text
-            last_updated = self.last_updated_field.text
+        trans_type_id = self.trans_type_id_field.text
+        cus_account_id = self.cus_account_id_field.text
+        related_cus_account_id = self.related_cus_account_id_field.text or None
+        trans_amount = self.trans_amount_field.text
+        direction = self.direction_field.text
+        trans_status = self.trans_status_field.text
+        trans_error_code = self.trans_error_code_field.text or None
+        trans_time = self.trans_time_field.text
+        last_updated = self.last_updated_field.text
 
-            if not all([trans_type_id, cus_account_id, trans_amount, direction]):
-                toast("Vui lòng điền đầy đủ các trường bắt buộc.")
-                return
+        if not all([trans_type_id, cus_account_id, trans_amount, direction]):
+            toast("Vui lòng điền đầy đủ các trường bắt buộc.")
+            return
 
-            conn = self.get_db_connection()
-            if conn is None:
-                return
+        conn = self.get_db_connection()
+        if conn is None:
+            return
 
-            mycursor = conn.cursor()
-            try:
-                mycursor.callproc('AddTransaction', [
-                    trans_type_id, cus_account_id, related_cus_account_id,
-                    int(trans_amount), direction.capitalize(), trans_status, 
-                    trans_error_code, trans_time, last_updated, None, None  # Truyền None cho các tham số OUT
-                ])
+        mycursor = conn.cursor()
+        try:
+            args = [
+                trans_type_id, cus_account_id, related_cus_account_id,
+                int(trans_amount), direction.capitalize(), trans_status,
+                trans_error_code, trans_time, last_updated, None, None
+            ]
+            result_args = mycursor.callproc('AddTransaction', args)
+            conn.commit()
+
+            result_message = result_args[-2]  # p_result
+            error_code = result_args[-1]      # p_error_code
+
+            toast(result_message)
+            if error_code == 'SUCCESS':
+                toast("Thêm giao dịch thành công!")
+                # Đóng dialog và refresh data an toàn
+                def safe_close_and_refresh(dt):
+                    if hasattr(self, 'add_transaction_dialog'):
+                        self.add_transaction_dialog.dismiss()
+                    self.load_all_transactions()
+                    self.ids.screen_manager.current = 'transactions' # Quay về màn hình transactions
+
+                from kivy.clock import Clock
+                Clock.schedule_once(safe_close_and_refresh)
+            else:
+                print(f"Error adding transaction: {result_message} (Code: {error_code})")
                 
-                # CÁCH ĐÚNG để lấy OUT params trong Python
-                mycursor.execute("SELECT @_AddTransaction_10, @_AddTransaction_11")
-                result = mycursor.fetchone()
-                print("OUT params:", result)  # Giờ sẽ hiển thị đúng giá trị
-                
-                if result and result[1] == 'SUCCESS':
-                    conn.commit()
-                    toast("Thành công!")
-                else:
-                    conn.rollback()
-                    toast(result[0] if result else "Lỗi không xác định")
-                    
-            except mysql.connector.Error as err:
-                print("MySQL Error:", err)
-                toast(f"Lỗi database: {err}")
-            finally:
-                if conn.is_connected():
-                    mycursor.close()
-                    conn.close()
+        except mysql.connector.Error as err:
+            print(f"Database error while adding transaction: {err}")
+            toast(f"Lỗi database: {err}")
+        except ValueError:
+            toast("WRONG")
+        finally:
+            if conn.is_connected():
+                mycursor.close()
+                conn.close()
