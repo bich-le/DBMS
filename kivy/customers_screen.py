@@ -6,6 +6,27 @@ from kivymd.uix.boxlayout import MDBoxLayout
 from kivy.metrics import dp
 from mysql.connector import Error
 from kivymd.uix.screen import MDScreen
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+import os
+import base64
+
+# Tạo key bí mật (lưu ở nơi an toàn, chỉ tạo 1 lần)
+SECRET_KEY = AESGCM.generate_key(bit_length=128)  # hoặc 256
+
+def encrypt_balance(balance: float, key: bytes = SECRET_KEY) -> str:
+    aesgcm = AESGCM(key)
+    nonce = os.urandom(12)
+    plaintext = str(balance).encode()
+    ciphertext = aesgcm.encrypt(nonce, plaintext, None)
+    # Ghép nonce + ciphertext để lưu trữ
+    return base64.b64encode(nonce + ciphertext).decode()
+
+def decrypt_balance(token: str, key: bytes = SECRET_KEY) -> float:
+    data = base64.b64decode(token)
+    nonce, ciphertext = data[:12], data[12:]
+    aesgcm = AESGCM(key)
+    plaintext = aesgcm.decrypt(nonce, ciphertext, None)
+    return float(plaintext.decode())
 
 class CustomerScreen(MDScreen):
     db_connection = None
@@ -120,9 +141,12 @@ class CustomerScreen(MDScreen):
                 balance = account['balance'] or 0
                 opening_date = account['opening_date'].strftime('%d/%m/%Y') if account['opening_date'] else 'N/A'
 
+                balance = account['balance'] or 0
+                encrypted_balance = encrypt_balance(balance)
+                decrypted_balance = decrypt_balance(encrypted_balance)
                 item = TwoLineListItem(
                     text=f"{account['cus_account_type_name']} Account",
-                    secondary_text=f"Balance: {balance:,} VND | Status: {account['cus_account_status']}",
+                    secondary_text=f"Status: {account['cus_account_status']}",
                     theme_text_color="Custom",
                     text_color=color_hex,
                     on_release=lambda x, a=account: self.show_account_details( a)
@@ -148,7 +172,6 @@ class CustomerScreen(MDScreen):
             details_text = f"""
             Account Type: {account_details['cus_account_type_name']}
             Account Status: {account_details['cus_account_status']}
-            Balance: {account_details['balance']:,} VND
             Opening Date: {account_details['opening_date'].strftime('%d/%m/%Y') if account_details['opening_date'] else 'N/A'}
             """
 

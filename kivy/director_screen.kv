@@ -51,7 +51,6 @@
                         left_action_items: [["menu", lambda x: root.ids.nav_drawer.set_state("open")]]
                     ReportBox:
                         id: report_box
-                       
 
             MDScreen:
                 name: "system"
@@ -103,7 +102,7 @@
                         
                 DrawerItem:
                     icon: "account-alert"
-                    text: "Suspicion"
+                    text: "Suspicions"
                     on_release:
                         nav_drawer.set_state("close")
                         Clock.schedule_once(lambda dt: setattr(screen_manager, "current", "suspicion"), 0.1)
