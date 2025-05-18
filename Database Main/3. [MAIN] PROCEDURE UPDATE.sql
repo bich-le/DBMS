@@ -217,3 +217,44 @@ DELIMITER ;
 -- SELECT @result, @error_code;
 
 -- select * from customer_accounts where cus_id = 'DTNBDN130000001';
+
+##################################################
+        -- GetAccountDetailsById --
+##################################################
+DELIMITER //
+CREATE PROCEDURE GetAccountDetailsById(IN p_account_id VARCHAR(20))
+BEGIN
+    SELECT 
+        ca.*, 
+        cat.cus_account_type_name, 
+        COALESCE(sa.saving_acc_balance, ck.check_acc_balance, fd.deposit_amount) AS balance,
+        COALESCE(sa.interest_rate_id, ck.interest_rate_id, fd.interest_rate_id) AS interest_rate_id,
+        ir.interest_rate_val,
+        ca.opening_date
+    FROM CUSTOMER_ACCOUNTS ca
+    LEFT JOIN CUSTOMER_ACCOUNT_TYPES cat ON ca.cus_account_type_id = cat.cus_account_type_id
+    LEFT JOIN SAVING_ACCOUNTS sa ON ca.cus_account_id = sa.cus_account_id
+    LEFT JOIN CHECK_ACCOUNTS ck ON ca.cus_account_id = ck.cus_account_id
+    LEFT JOIN FIXED_DEPOSIT_ACCOUNTS fd ON ca.cus_account_id = fd.cus_account_id
+    LEFT JOIN INTEREST_RATES ir ON ir.interest_rate_id = COALESCE(sa.interest_rate_id, ck.interest_rate_id, fd.interest_rate_id)
+    WHERE ca.cus_account_id = p_account_id;
+END //
+DELIMITER ;
+
+##################################################
+        -- GetEmployeesDetailsById --
+##################################################
+DELIMITER $$
+CREATE PROCEDURE GetEmployeeDetailsById(IN p_emp_id VARCHAR(20))
+BEGIN
+    SELECT 
+        e.*, 
+        b.branch_name,
+        ep.emp_position_name
+    FROM EMPLOYEES e
+    LEFT JOIN BRANCHES b ON e.branch_id = b.branch_id
+    LEFT JOIN EMPLOYEE_POSITIONS ep ON e.emp_position_id = ep.emp_position_id
+    Where e.emp_id = p_emp_id;
+END $$
+DELIMITER ;
+

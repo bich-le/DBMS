@@ -222,10 +222,10 @@ class CustomerScreen(MDScreen):
                     ("ID", dp(35)),
                     ("Name", dp(40)),
                     ("Phone Number", dp(30)),
-                    ("Email", dp(40)),
+                    ("Email", dp(60)),
                     ("Branch", dp(30)),
-                    ("Number of Accounts", dp(20)),
-                    ("Account Type", dp(40)),
+                    ("Number of Accounts", dp(15)),
+                    ("Account Type", dp(80)),
                 ],
                 row_data=[
                     (
