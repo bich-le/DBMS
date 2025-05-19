@@ -181,7 +181,7 @@ DELIMITER ;
                 
 ####################################################################################################################################################################
 ##################################################################################
-	-- CHECK IF TRANSACTION_TYPE IS AVAILABLE FOR THE CUSTOMER ACOCUNT TYPE --
+	-- CHECK IF TRANSACTION_TYPE IS AVAILABLE FOR THE CUSTOMER ACCOUNT TYPE --
 ##################################################################################
 DELIMITER //
 
@@ -285,7 +285,8 @@ BEGIN
             SET NEW.trans_status = 'Failed';
             SET NEW.trans_error_code = 'LIMIT-002';
         END IF;
-        END IF;
+                END IF;
+		IF NEW.direction = 'Debit' THEN
          -- Lấy giới hạn từng giao dịch
         SELECT transfer_limit INTO v_transaction_limit
         FROM CHECK_ACCOUNTS
@@ -295,6 +296,8 @@ BEGIN
             SET NEW.trans_status = 'Failed';
             SET NEW.trans_error_code = 'LIMIT-001';
         END IF;
+        END IF;
+
     -- Kiểm tra hạn mức giao dịch trong ngày nếu là chuyển tiền Debit
    -- Check for same source and destination accounts
     IF NEW.trans_type_id = 'TRF' AND NEW.related_cus_account_id = NEW.cus_account_id THEN
@@ -356,95 +359,139 @@ BEGIN
     END IF;
 END//
 DELIMITER ;
--- Trigger xử lý khi có bút toán Nợ
-DELIMITER //
+select * from transactions;
 
-CREATE TRIGGER after_debit_create_credit
-AFTER INSERT ON TRANSACTIONS
-FOR EACH ROW
-BEGIN
-    -- Chỉ xử lý khi là giao dịch ghi Nợ thành công và có tài khoản đích
-    IF NEW.direction = 'Debit' AND NEW.trans_status = 'Successful' AND NEW.related_cus_account_id IS NOT NULL THEN
-        -- Kiểm tra tính hợp lệ của tài khoản
-        IF EXISTS (
-            SELECT 1 FROM CUSTOMER_ACCOUNTS 
-            WHERE cus_account_id = NEW.related_cus_account_id
-        ) THEN
-            -- Lưu vào bảng tạm để xử lý sau
-            INSERT INTO PENDING_CREDITS (
-                trans_type_id,
-                cus_account_id,
-                related_cus_account_id,
-                trans_amount,
-                trans_time, last_updated
-            ) VALUES (
-                NEW.trans_type_id,
-                NEW.related_cus_account_id, -- Tài khoản ghi Có
-                NEW.cus_account_id,         -- Tài khoản ghi Nợ (liên quan)
-                NEW.trans_amount,
-                NEW.trans_time,
-                NEW.last_updated
-            );
-        END IF;
-    END IF;
-END //
-
-DELIMITER ;
 
 ##################################################################################
 				-- Ensure double-entry bookkeeping principle --
 ##################################################################################
+-- 
 DELIMITER //
 
-CREATE EVENT IF NOT EXISTS process_pending_credits
-ON SCHEDULE EVERY 3 SECOND
-DO
+CREATE TRIGGER tr_auto_create_credit_after_debit
+AFTER INSERT ON TRANSACTIONS
+FOR EACH ROW
 BEGIN
-    -- Khai báo biến
-    DECLARE done INT DEFAULT FALSE;
-    DECLARE processed_count INT DEFAULT 0;
-    DECLARE max_batch_size INT DEFAULT 50; -- Xử lý tối đa 50 bút toán mỗi lần
-    
-    -- Xử lý từng bút toán trong batch
-    WHILE processed_count < max_batch_size AND NOT done DO
-        -- Lấy ID của bút toán cần xử lý (cũ nhất)
-        SET @next_id = (SELECT MIN(id) FROM PENDING_CREDITS);
+    -- Chỉ xử lý khi là giao dịch Debit thành công và có tài khoản liên quan
+    IF NEW.direction = 'Debit' AND NEW.trans_status = 'Successful' AND NEW.related_cus_account_id IS NOT NULL THEN
+        -- Thêm vào bảng PENDING_CREDITS để xử lý sau
+        INSERT INTO PENDING_CREDITS (
+            trans_type_id,
+            cus_account_id,
+            related_cus_account_id,
+            trans_amount,
+            trans_time,
+            last_updated
+        ) VALUES (
+            NEW.trans_type_id,
+            NEW.related_cus_account_id, -- Tài khoản nhận sẽ là tài khoản ghi Có
+            NEW.cus_account_id,          -- Tài khoản ghi Nợ sẽ là tài khoản liên quan
+            NEW.trans_amount,
+            NEW.trans_time,
+            NOW()
+        );
         
-        IF @next_id IS NOT NULL THEN
-            -- Chèn vào bảng TRANSACTIONS (trans_id sẽ tự sinh)
-            INSERT INTO TRANSACTIONS (
-                trans_type_id,
-                cus_account_id,
-                related_cus_account_id,
-                trans_amount,
-                direction,
-                trans_time,
-                trans_status,
-                last_updated
-            )
-            SELECT 
-                trans_type_id,
-                cus_account_id,
-                related_cus_account_id,
-                trans_amount,
-                'Credit',
-                trans_time,
-                'Successful',
-                last_updated
-            FROM PENDING_CREDITS
-            WHERE id = @next_id;
-            
-            -- Xóa khỏi bảng tạm sau khi xử lý
-            DELETE FROM PENDING_CREDITS WHERE id = @next_id;
-            
-            SET processed_count = processed_count + 1;
-        ELSE
-            SET done = TRUE;
-        END IF;
-    END WHILE;
+        -- Ghi log
+        INSERT INTO EVENT_LOG (message) 
+        VALUES (CONCAT('Auto-created pending credit for debit transaction: ', NEW.trans_id));
+    END IF;
 END //
 
 DELIMITER ;
+-- 
+DELIMITER //
+
+CREATE PROCEDURE process_pending_credits()
+BEGIN
+    DECLARE done INT DEFAULT FALSE;
+    DECLARE v_id INT;
+    DECLARE v_trans_type_id VARCHAR(3);
+    DECLARE v_cus_account_id VARCHAR(17);
+    DECLARE v_related_cus_account_id VARCHAR(17);
+    DECLARE v_trans_amount INT;
+    DECLARE v_trans_time DATETIME;
+    
+    -- Khai báo cursor để lấy các bản ghi chưa xử lý
+    DECLARE cur CURSOR FOR 
+        SELECT id, trans_type_id, cus_account_id, related_cus_account_id, trans_amount, trans_time
+        FROM PENDING_CREDITS
+        ORDER BY created_at;
+    
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+    
+    OPEN cur;
+    
+    read_loop: LOOP
+        FETCH cur INTO v_id, v_trans_type_id, v_cus_account_id, v_related_cus_account_id, v_trans_amount, v_trans_time;
+        IF done THEN
+            LEAVE read_loop;
+        END IF;
+        
+        -- Gọi procedure tạo giao dịch Credit
+        CALL create_credit_transaction(
+            v_trans_type_id,
+            v_cus_account_id,
+            v_related_cus_account_id,
+            v_trans_amount,
+            v_trans_time
+        );
+        
+        -- Xóa bản ghi đã xử lý
+        DELETE FROM PENDING_CREDITS WHERE id = v_id;
+    END LOOP;
+    
+    CLOSE cur;
+END //
+
+DELIMITER ;
+DELIMITER //
+
+CREATE PROCEDURE create_credit_transaction(
+    IN p_trans_type_id VARCHAR(3),
+    IN p_cus_account_id VARCHAR(17),
+    IN p_related_cus_account_id VARCHAR(17),
+    IN p_trans_amount INT,
+    IN p_trans_time DATETIME
+)
+BEGIN
+    -- Thêm giao dịch Credit mà không cần xử lý trans_id
+    INSERT INTO TRANSACTIONS (
+        trans_type_id,
+        cus_account_id,
+        related_cus_account_id,
+        trans_amount,
+        direction,
+        trans_time,
+        trans_status
+    ) VALUES (
+        p_trans_type_id,
+        p_cus_account_id,
+        p_related_cus_account_id,
+        p_trans_amount,
+        'Credit',
+        p_trans_time,
+        'Successful'
+    );
+    
+    -- Ghi log với trans_id vừa được tạo
+    INSERT INTO EVENT_LOG (message) 
+    VALUES (CONCAT('Created credit transaction for debit to account: ', p_related_cus_account_id, 
+                  '. Amount: ', p_trans_amount, 
+                  '. New transaction ID generated by system.'));
+END //
+
+DELIMITER ;
+DELIMITER //
+
+CREATE EVENT IF NOT EXISTS event_process_pending_credits
+ON SCHEDULE EVERY 5 SECOND
+DO
+BEGIN
+    CALL process_pending_credits();
+END //
+
+DELIMITER ;
+
 ##################################################################################
 						-- Update balance after transactions --
 ##################################################################################
@@ -505,56 +552,7 @@ BEGIN
                         SET deposit_amount = deposit_amount + NEW.trans_amount
                         WHERE cus_account_id = NEW.cus_account_id;
                 END CASE;
-        END CASE;
-        
-        -- Xử lý cho tài khoản liên quan (nếu có - thường dùng cho chuyển khoản)
-        IF NEW.related_cus_account_id IS NOT NULL THEN
-            -- Xác định loại tài khoản liên quan
-            SELECT cus_account_type_id INTO account_type
-            FROM CUSTOMER_ACCOUNTS
-            WHERE cus_account_id = NEW.related_cus_account_id;
-            
-            -- Đảo ngược xử lý cho tài khoản liên quan
-            CASE 
-                WHEN NEW.direction = 'Debit' THEN
-                    -- Credit vào tài khoản đích (khi giao dịch chính là Debit)
-                    CASE account_type
-                        WHEN 'C' THEN
-                            UPDATE CHECK_ACCOUNTS
-                            SET check_acc_balance = check_acc_balance + NEW.trans_amount
-                            WHERE cus_account_id = NEW.related_cus_account_id;
-                            
-                        WHEN 'S' THEN
-                            UPDATE SAVING_ACCOUNTS
-                            SET saving_acc_balance = saving_acc_balance + NEW.trans_amount
-                            WHERE cus_account_id = NEW.related_cus_account_id;
-                            
-                        WHEN 'F' THEN
-                            UPDATE FIXED_DEPOSIT_ACCOUNTS
-                            SET deposit_amount = deposit_amount + NEW.trans_amount
-                            WHERE cus_account_id = NEW.related_cus_account_id;
-                    END CASE;
-                    
-                WHEN NEW.direction = 'Credit' THEN
-                    -- Debit từ tài khoản nguồn (khi giao dịch chính là Credit)
-                    CASE account_type
-                        WHEN 'C' THEN
-                            UPDATE CHECK_ACCOUNTS
-                            SET check_acc_balance = check_acc_balance - NEW.trans_amount
-                            WHERE cus_account_id = NEW.related_cus_account_id;
-                            
-                        WHEN 'S' THEN
-                            UPDATE SAVING_ACCOUNTS
-                            SET saving_acc_balance = saving_acc_balance - NEW.trans_amount
-                            WHERE cus_account_id = NEW.related_cus_account_id;
-                            
-                        WHEN 'F' THEN
-                            UPDATE FIXED_DEPOSIT_ACCOUNTS
-                            SET deposit_amount = deposit_amount - NEW.trans_amount
-                            WHERE cus_account_id = NEW.related_cus_account_id;
-                    END CASE;
-            END CASE;
-        END IF;
+        END CASE;       
     END IF;
 END //
 
@@ -815,6 +813,3 @@ BEGIN
     VALUES (p_account_id, current_status, high_severity_count, action_msg);
 END//
 DELIMITER ;
-
-
-
