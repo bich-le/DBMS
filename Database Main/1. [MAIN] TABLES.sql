@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS BRANCHES (
                     
                     
 CREATE TABLE IF NOT EXISTS CUSTOMERS (
-    cus_ID VARCHAR(18) PRIMARY KEY,
+    cus_id VARCHAR(18) PRIMARY KEY,
     cus_first_name VARCHAR(50),
     cus_last_name VARCHAR(50),
     cus_dob DATE,
