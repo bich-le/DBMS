@@ -231,26 +231,6 @@ CREATE TABLE EMPLOYEE_ACCOUNTS (
     
     FOREIGN KEY (emp_id) REFERENCES EMPLOYEEs(emp_id) ON DELETE CASCADE  
 );
-CREATE TABLE DEVICE_TYPES (
-    device_type_id INT AUTO_INCREMENT PRIMARY KEY,
-    device_type_name VARCHAR(50) NOT NULL UNIQUE,      -- Ví dụ: 'desktop', 'laptop', 'thin_client'
-    is_portable BOOLEAN DEFAULT FALSE,          -- Có được mang ra ngoài không
-    requires_approval BOOLEAN DEFAULT TRUE,     -- Có cần IT duyệt không
-    description TEXT
-);
-CREATE TABLE DEVICES (
-    device_id INT AUTO_INCREMENT PRIMARY KEY,
-    device_type_id INT NOT NULL,                        
-    device_name VARCHAR(100) NOT NULL,
-    mac_address VARCHAR(50) NOT NULL,
-    ip_address VARCHAR(45),
-    is_active BOOLEAN DEFAULT TRUE,
-    is_approved BOOLEAN DEFAULT FALSE,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    last_checked_at DATETIME,
-    
-    CONSTRAINT fk_type_device FOREIGN KEY (device_type_id) REFERENCES device_types(device_type_id)
-);
 
 							-- SYSTEM MANAGEMENT --------------------------------------------
 
@@ -287,7 +267,7 @@ CREATE TABLE SUSPICIONS_PENDING_UPDATE (
     PRIMARY KEY (trans_id, fraud_pattern_id, detected_time)
 );
 				-- DEBUG & EVENT LOG ---
-CREATE TABLE IF NOT EXISTS EVENT_LOG ( -- check event move_temp_to_suspicions
+CREATE TABLE IF NOT EXISTS EVENT_LOG ( -- check events
     log_time DATETIME DEFAULT NOW(),
     message TEXT
 );
@@ -296,37 +276,5 @@ CREATE TABLE IF NOT EXISTS DEBUG_LOG ( -- check bug procedure detect_amount_spik
     msg TEXT,
     log_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );                
-CREATE TABLE DEBUG_LOG_2 ( -- check bug procedure check_and_lock_account
-    log_id INT AUTO_INCREMENT PRIMARY KEY,
-    log_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-    account_id VARCHAR(17),
-    current_status VARCHAR(20),
-    high_severity_count INT,
-    action_taken VARCHAR(100)
-);
 
-					-- REPORT --------------------------------------------
-                    
-                    
-CREATE TABLE REPORT (
-    report_id INT AUTO_INCREMENT PRIMARY KEY,
-    report_name VARCHAR(100) NOT NULL UNIQUE,
-    report_description TEXT
-);
-CREATE TABLE REPORT_ACCESS (
-    report_id INT,
-    emp_position ENUM('D','M','T','A'),  -- Director, Manager, Teller, Auditor
-    PRIMARY KEY (report_id, emp_position),
-    FOREIGN KEY (report_id) REFERENCES REPORT(report_id)
-);
-CREATE TABLE REPORT_FILTER (
-    report_id INT,
-    filter_name VARCHAR(100),
-    filter_type VARCHAR(50),
-    is_required BOOLEAN,
-    FOREIGN KEY (report_id) REFERENCES report(report_id)
-);
-
-
-
-
+					
