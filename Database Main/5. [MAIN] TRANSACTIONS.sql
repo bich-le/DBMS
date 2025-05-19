@@ -212,13 +212,5 @@ INSERT INTO TRANSACTIONS (trans_type_id, cus_account_id, related_cus_account_id,
 -- 2025-05-16 (1 transaction)
 INSERT INTO TRANSACTIONS (trans_type_id, cus_account_id, related_cus_account_id, trans_amount, direction, trans_time, last_updated) VALUES
 ('WDL', 'DTNBS250000001', NULL, 1100000, 'Debit', '2025-05-16 15:00:00', '2025-05-16 15:00:00'); -- Nguyễn Thị Thu Trang, Savings
-
--- 2025-05-17 (1 transaction)
-INSERT INTO TRANSACTIONS (trans_type_id, cus_account_id, related_cus_account_id, trans_amount, direction, trans_time, last_updated) VALUES
-('TRF', 'DTNBS250000001', 'DTNBC240000001', 1501, 'Debit', '2025-05-17 16:00:00', '2025-05-17 16:00:00'); -- Nguyễn Thị Thu Trang, Savings
-SELECT * FROM CHECK_ACCOUNTS WHERE CUS_ACCOUNT_ID = 'DTNBC240000001';
-SELECT * FROM SAVING_ACCOUNTS WHERE CUS_ACCOUNT_ID = 'DTNBS250000001';
-
-SELECT * FROM TRANSACTIONS
-ORDER BY trans_time DESC;  -- Sắp xếp tăng dần theo thời gian (cũ nhất lên trước)
+## CHECK TRANSACTION SYSTEMS
 
