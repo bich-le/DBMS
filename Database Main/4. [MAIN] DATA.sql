@@ -30,7 +30,8 @@ INSERT INTO TRANSACTION_ERROR_CODES VALUES
 ('ACC-001', 'DESTINATION ACCOUNT LOCKED', 'The destination account has been locked', TRUE, FALSE, TRUE),
 ('BAL-001', 'INSUFFICIENT BALANCE', 'Insufficient account balance', TRUE, TRUE, FALSE),
 ('LIMIT-001', 'TRANSACTION LIMIT EXCEEDED', 'Exceeded the transaction limit', TRUE, FALSE, TRUE),
-('LIMIT-002', 'DAILY TRANSACTION LIMIT EXCEEDED', 'Exceeded the daily transaction limit', TRUE, FALSE, TRUE);
+('LIMIT-002', 'DAILY TRANSACTION LIMIT EXCEEDED', 'Exceeded the daily transaction limit', TRUE, FALSE, TRUE),
+('EWP', 'EARLY WITHDRAWAL PENALTY', 'Penalty charged for early withdrawal before maturity',  TRUE, FALSE, TRUE);
 INSERT INTO INTEREST_RATES (interest_rate_val, cus_account_type_id, min_balance, max_balance, status, term)
 VALUES
 (0.1, 'C', 0, NULL, 'Active', NULL),
@@ -57,11 +58,11 @@ VALUES
 ('M', 'Manager', 'Manages bank branch operations'),
 ('A', 'Auditor', 'Responsible for reviewing and auditing financial records'),
 ('C', 'CEO', 'Leads the entire bank, responsible for corporate strategy and executive decisions');
+
 INSERT INTO FRAUD_PATTERNS (fraud_pattern_name, description)
 VALUES 
 ('Transaction Amount Spike', 'More than 5 consecutive transaction in less than 15 minutes exceeds 10 times the average amount of that account over 1-year interval.(if these transaction amounts exceed 50000000'),
 ('Dormant Account Activity', 'An account that has not had transactions for more than 3 months suddenly has a large transaction. From 50,000,000');
-
 
 ######################################################
 			-- CUSTOMERS --
@@ -82,7 +83,7 @@ INSERT INTO CUSTOMERS (
     cus_phone_num, cus_sex, cus_identification_id, branch_id
 ) VALUES
 ('Nguyễn Thị Thu', 'Trang', '1997-09-05', 'trang.nguyenthithu97@gmail.com', '67 Le Van Sy Street, District 3, Ho Chi Minh City', '+84 91 123 4567', 'Female', '089012345678', 'HCM');
-select * from CUSTOMERS;
+
 
 ######################################################
 			-- CUSTOMER ACCOUNTS --
@@ -119,7 +120,7 @@ INSERT INTO CUSTOMER_ACCOUNTS (cus_id, cus_account_status, cus_account_type_id, 
 INSERT INTO CUSTOMER_ACCOUNTS (cus_id, cus_account_status, cus_account_type_id) VALUES
 ('DTNBHCM250000001', 'Active', 'S'),
 ('DTNBHCM250000001', 'Active', 'F');
-SELECT * FROM CUSTOMER_ACCOUNTS;
+
 
 UPDATE SAVING_ACCOUNTS
 SET saving_acc_balance = CASE cus_account_id
@@ -224,9 +225,7 @@ INSERT INTO EMPLOYEES (emp_fullname, emp_sex, emp_dob, emp_phone_num, emp_email,
 ('Vũ Minh Giao Dịch 5', 'Male', '1992-04-20', '+84 900000044', 'teller5.qn@bank.com', '23 Lý Thường Kiệt, Quảng Ninh', 12000000, 'QN', 'T', '2021-07-18'),
 ('Nguyễn Quang Kiểm Toán 1', 'Male', '1985-07-30', '+84 900000045', 'auditor1.qn@bank.com', '67 Cái Dăm, Quảng Ninh', 18000000, 'QN', 'A', '2020-03-10'),
 ('Lê Thị Kiểm Toán 2', 'Female', '1986-05-05', '+84 900000046', 'auditor2.qn@bank.com', '123 Bãi Cháy, Quảng Ninh', 17500000, 'QN', 'A', '2020-09-15');
-######################################################
-		-- EMPLOYEE ACCOUNTS --
-######################################################  
+
 INSERT INTO employee_accounts (emp_id, username, password_hash, status, suspension_time, reactivation_time, created_at
 ) VALUES
 ('HNA180001', 'toan1', SHA2('toan1', 256), 'Active', NULL, NULL, '2018-09-10 00:00:00'),
@@ -237,3 +236,18 @@ INSERT INTO employee_accounts (emp_id, username, password_hash, status, suspensi
 ('HNT180001', 'nam',   SHA2('nam', 256), 'Active', NULL, NULL, '2018-02-15 00:00:00'),
 ('HNT190001', 'gdich1', SHA2('gdich1', 256), 'Active', NULL, NULL, '2018-02-15 00:00:00'),
 ('HNT200001', 'gdich2', SHA2('gdich2', 256), 'Active', NULL, NULL, '2018-02-15 00:00:00');
+
+INSERT INTO EMPLOYEE_CUSTOMERS (emp_id, cus_id, service_type_id, assigned_date) VALUES
+('HNT180001', 'DTNBHN030000001', 'ACCT', '2023-11-01'),
+('HNT190001', 'DTNBHN030000002', 'LOAN', '2023-07-15'),
+('HNT190002', 'DTNBHN220000001', 'CARD', '2022-07-01'),
+('HCMT190001', 'DTNBHCM230000001', 'ACCT', '2023-08-01'),
+('HCMT190002', 'DTNBHCM250000001', 'DIGI', '2025-05-01'),
+('DNT190001', 'DTNBDN130000001', 'CARD', '2023-07-01'),
+('HPT200001', 'DTNBHP230000001', 'TRAN', '2023-02-01'),
+('QNT200001', 'DTNBQN210000001', 'LOAN', '2022-01-15'),
+('HCMT200001', 'DTNBHCM230000001', 'CARD', '2023-09-15'),
+('DNT200001', 'DTNBDN130000001', 'ACCT', '2023-08-10'),
+('QNT210001', 'DTNBQN210000001', 'DIGI', '2022-02-01'),
+('HNA170001', 'DTNBHN220000001', 'COMP', '2023-03-01'),
+('HCMA180001', 'DTNBHCM250000001', 'COMP', '2025-05-10');
