@@ -79,8 +79,7 @@ CREATE TABLE SAVING_ACCOUNTS(
 );
 CREATE TABLE CHECK_ACCOUNTS(
     cus_account_id VARCHAR(17) primary key,
-  --   check_acc_balance bigint unsigned not null,
-	check_acc_balance bigint not null,
+    check_acc_balance bigint not null,
     interest_rate_id TINYint,
     transfer_limit int unsigned default 100000000
 		CHECK (transfer_limit <= 100000000) ,
@@ -110,7 +109,7 @@ CREATE TABLE TRANSACTION_TYPES(
     trans_type_name VARCHAR(30) NOT NULL,
     description TEXT
 );
--- Thêm các mã lỗi cơ bản có thể phát hiện bằng trigger
+
 CREATE TABLE TRANSACTION_ERROR_CODES (
     trans_error_code VARCHAR(10) PRIMARY KEY,
     trans_error_name VARCHAR(50) NOT NULL UNIQUE,
@@ -169,7 +168,7 @@ CREATE TABLE IF NOT EXISTS PENDING_CREDITS (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     last_updated DATETIME ,
     
-    INDEX (created_at) -- Đánh index để xử lý theo thứ tự
+    INDEX (created_at) 
 ) ENGINE=InnoDB;
 
  -- INTERNAL SYSTEM --------------------------------------------
