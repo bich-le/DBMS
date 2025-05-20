@@ -1,4 +1,5 @@
--- (ĐÔNG) VIEWS AND STORED PROCEDURES FOR REPORTING 
+use main;
+-- VIEWS AND STORED PROCEDURES FOR REPORTING 
 
 --  1.  Lịch sử giao dịch hệ thống
 --  Mục tiêu: Lấy lịch sử giao dịch trong một khoảng thời gian cho toàn bộ hệ thống.
