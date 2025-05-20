@@ -90,7 +90,7 @@ select * from failed_transactions;
                 
 ########################################################################################################################
 select * from check_accounts where cus_account_id = 'DTNBC170000002';
-INSERT INTO TRANSACTIONS ( -- Check vượt daily_transfer_limit & gửi vào tk locked -- lỗi, lẽ ra phải check vượt tranfer_lim trước
+INSERT INTO TRANSACTIONS ( -- Check vượt daily_transfer_limit & gửi vào tk locked 
     trans_type_id, cus_account_id, related_cus_account_id, trans_amount,
     direction, trans_time, last_updated,  trans_error_code
 ) VALUES
@@ -193,7 +193,7 @@ select * from temp_suspicions;
 select * from suspicions;
 select * from transactions where trans_id = "DTNBTRF25000002919";
 #######################################################################
-			--  TEST CASE 1: DORMANT ACCOUNT ACTIVITY --
+			--  TEST CASE 2: DORMANT ACCOUNT ACTIVITY --
 #######################################################################
 -- First, create a dormant account (no transactions for >3 months)
 INSERT INTO CUSTOMER_ACCOUNTS ( 
