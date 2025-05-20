@@ -1,3 +1,4 @@
+use main;
 -- 1. BRANCHES
 SELECT * FROM BRANCHES;
 
