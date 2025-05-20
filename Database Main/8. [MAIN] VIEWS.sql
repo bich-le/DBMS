@@ -1,7 +1,8 @@
+use main;
 #############################
 	-- VIEW SUSPICIONS--
 #############################
-use main;
+
 SELECT
     s.suspicion_id,
     t.trans_id,
