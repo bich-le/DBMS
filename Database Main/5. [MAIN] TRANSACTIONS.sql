@@ -1,3 +1,4 @@
+use main;
 -- 2013-07-01 (1 transaction)
 INSERT INTO TRANSACTIONS (trans_type_id, cus_account_id, related_cus_account_id, trans_amount, direction, trans_time, last_updated) VALUES
 ('POS', 'DTNBC130000001', NULL, 1300000, 'Debit', '2013-07-01 09:00:00', '2013-07-01 09:00:00'); -- Lê Văn Cường, Checking
