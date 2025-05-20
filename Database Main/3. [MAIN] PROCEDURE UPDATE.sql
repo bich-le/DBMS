@@ -133,26 +133,7 @@ END;
 //
 DELIMITER ;
 
--- Tạo biến đầu ra
--- SET @result = '';
--- SET @error_code = '';
--- -- Gọi thủ tục
--- CALL AddTransaction(
---     'TRF',                          -- p_trans_type_id
---     'DTNBS250000001',              -- p_cus_account_id
---     'DTNBC240000001',              -- p_related_cus_account_id
---     1501,                          -- p_trans_amount
---     'Debit',                       -- p_direction
---     'Successful',                  -- p_trans_status
---     NULL,                          -- p_trans_error_code
---     '2025-05-17 16:00:00',         -- p_trans_time
---     '2025-05-17 16:00:00',         -- p_last_updated
---     @result,                       -- OUT p_result
---     @error_code                    -- OUT p_error_code
--- );
--- select * from transactions;
--- -- Xem kết quả
--- SELECT @result, @error_code;
+
 
 ##################################################
         -- ADD CUSTOMER ACCOUNTS --
@@ -208,15 +189,7 @@ proc: BEGIN
 END //
 
 DELIMITER ;
--- select * from customers;
--- CALL add_customer_account(
--- 	'DTNBDN130000001', 'F',    
---     @result,                       -- OUT p_result
---     @error_code  
--- );
--- SELECT @result, @error_code;
 
--- select * from customer_accounts where cus_id = 'DTNBDN130000001';
 
 ##################################################
         -- GetAccountDetailsById --
